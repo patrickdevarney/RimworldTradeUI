@@ -1,0 +1,4 @@
+E:\Repos\TradeMod\Source\TradeMod\obj\Debug\TradeMod.csprojAssemblyReference.cache
+E:\Repos\TradeMod\Source\TradeMod\obj\Debug\TradeMod.csproj.CoreCompileInputs.cache
+E:\Repos\TradeMod\build\TradeUI.dll
+E:\Repos\TradeMod\Source\TradeMod\obj\Debug\TradeUI.dll
