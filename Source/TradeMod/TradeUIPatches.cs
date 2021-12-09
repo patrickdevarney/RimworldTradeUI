@@ -12,6 +12,7 @@ using UnityEngine;
  * Move silver trade amount to be aligned with the center
  * Fix "Positive numbers buy. Negative numbers sell." text not aligned above silver (remove altogether?)
  * Move our silver amount further to our side (maybe have silver in each window left/right and then have the scroll rect below them?)
+ * Fix scroll Rect height being incorrect (currently is the height of all the items rather than height of each list independently)
  * Fix unintuitive behavior that if I sell/buy all of an item, it is strange to reverse this move
  * * for items that exist on both sides (steel), it works well
  * * for items that only exist on one side, once it is queued to switch sides then you can't use any buttons

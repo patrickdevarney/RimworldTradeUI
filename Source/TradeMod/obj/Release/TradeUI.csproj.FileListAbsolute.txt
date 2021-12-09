@@ -1,8 +1,6 @@
 E:\Repos\TradeMod\Source\TradeMod\bin\Release\TradeUI.dll
 E:\Repos\TradeMod\Source\TradeMod\bin\Release\TradeUI.pdb
-E:\Repos\TradeMod\Source\TradeMod\bin\Release\Assembly-CSharp_publicized.dll
 E:\Repos\TradeMod\Source\TradeMod\obj\Release\TradeUI.csproj.CoreCompileInputs.cache
-E:\Repos\TradeMod\Source\TradeMod\obj\Release\TradeUI.csproj.CopyComplete
 E:\Repos\TradeMod\Source\TradeMod\obj\Release\TradeUI.dll
 E:\Repos\TradeMod\Source\TradeMod\obj\Release\TradeUI.pdb
 E:\Repos\TradeMod\Source\TradeMod\obj\Release\TradeUI.csprojAssemblyReference.cache
