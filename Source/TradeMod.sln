@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.421
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradeMod", "TradeMod\TradeMod.csproj", "{9D2DBD60-62FD-45B3-83CB-5313628508BA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradeUI", "TradeMod\TradeUI.csproj", "{9D2DBD60-62FD-45B3-83CB-5313628508BA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
