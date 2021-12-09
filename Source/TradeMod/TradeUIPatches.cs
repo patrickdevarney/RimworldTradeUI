@@ -4,6 +4,23 @@ using RimWorld;
 using System.Collections.Generic;
 using UnityEngine;
 
+/*
+ * TODO list
+ * Fix silver left/right arrow no aligned properly
+ * Fix not having enough width for the two scroll rects to fit item names (increase width?)
+ * Determine what "flash" is in Harmony_TransferableUIUtility_DoCountAdjustInterfaceInternal and if it has correct pixel coords
+ * Move silver trade amount to be aligned with the center
+ * Fix "Positive numbers buy. Negative numbers sell." text not aligned above silver (remove altogether?)
+ * Move our silver amount further to our side (maybe have silver in each window left/right and then have the scroll rect below them?)
+ * Fix unintuitive behavior that if I sell/buy all of an item, it is strange to reverse this move
+ * * for items that exist on both sides (steel), it works well
+ * * for items that only exist on one side, once it is queued to switch sides then you can't use any buttons
+ * * can't swap the buttons because we only have space for two buttons. They both have to be > and >>
+ * * if the item doesn't exist on the other side, we could make it visible? I queue pants to sell, trader doesn't have it, add a pants slot with << < arrows to return it to me? visible price will not be correct
+ * Test with various traders
+ * Test multiplayer
+ */
+
 namespace TradeUI
 {
     [StaticConstructorOnStartup]
