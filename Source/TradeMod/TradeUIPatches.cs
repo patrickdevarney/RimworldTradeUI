@@ -11,12 +11,16 @@ using RimWorld.Planet;
  * Determine what "flash" is in Harmony_TransferableUIUtility_DoCountAdjustInterfaceInternal and if it has correct pixel coords
  * 
  * Fix unintuitive behavior that if I sell/buy all of an item, it is strange to reverse this move
- * * for items that only exist on one side, once it is queued to switch sides then you can't use any buttons
- * * if the item doesn't exist on the other side, we could make it visible? I queue pants to sell, trader doesn't have it, add a pants slot with << < arrows to return it to me? visible price will not be correct
+ * * Make transfer numbers always postive
+ * * If user types a positive number on our side, interpret it as negative
  * 
- * Fix silver row overlapping footer buttons
+ * Fix silver icon not centered verticall
  * 
- * Format silver row to be readable (larger text, shift text left/right)
+ * Fix silver transfer total not centered horizontally
+ * 
+ * Fix silver arrow not centered on transfer total
+ * 
+ * Change colors (Accept green, Cancel red, Reset, orange/default)
  * 
  * Test with various traders
  * Test multiplayer
@@ -94,30 +98,28 @@ namespace TradeUI
                 myThis.sorter2 = x;
                 myThis.CacheTradeables();
             });
-            //inRect.yMin += TransferableUIUtility.SortersHeight;
+            
             // Calculate space for left/right rects
-            //Rect mainRect = new Rect(0f, 58f, inRect.width, inRect.height - 58f - 38f - 20f);
-            const float FOOTER_HEIGHT = 90;//58f;
+            const float FOOTER_HEIGHT = 150;
+            const float BUTTON_HEIGHT = 55;
             Rect twoColumnRect = new Rect(0f, inRect.yMin + TransferableUIUtility.SortersHeight, inRect.width, inRect.height - FOOTER_HEIGHT - TransferableUIUtility.SortersHeight);
 
             // DRAW THE LEFT/RIGHT AREAS
             __instance.FillMainRect(twoColumnRect);
 
-            Rect footerSilverRect = new Rect(0f, inRect.height - FOOTER_HEIGHT + 3, inRect.width, FOOTER_HEIGHT - 55);
+            Rect footerSilverRect = new Rect(0f, inRect.height - FOOTER_HEIGHT + 3, inRect.width, FOOTER_HEIGHT - BUTTON_HEIGHT - 13);//FOOTER_HEIGHT - 55);
             if (__instance.cachedCurrencyTradeable != null)
             {
-                //float num3 = inRect.width - 16f;
-                RimWorld.TradeUI.DrawTradeableRow(footerSilverRect, __instance.cachedCurrencyTradeable, 1);
                 GUI.color = Color.gray;
                 Widgets.DrawLineHorizontal(0f, footerSilverRect.yMin, inRect.width);
                 GUI.color = Color.white;
+                Harmony_DialogTrade_FillMainRect.DrawCurrencyTradableRow(new Rect(0f, footerSilverRect.yMin + 5, footerSilverRect.width, footerSilverRect.height), __instance.cachedCurrencyTradeable, true);
             }
 
             // Draw bottom buttons
             Text.Font = GameFont.Small;
             Rect buttonsRect = new Rect(inRect.width / 2f - Dialog_Trade.AcceptButtonSize.x / 2f,
-                //inRect.height - FOOTER_HEIGHT + 3, // Add slight vertical buffer
-                inRect.height - 55,
+                inRect.height - BUTTON_HEIGHT,
                 Dialog_Trade.AcceptButtonSize.x,
                 Dialog_Trade.AcceptButtonSize.y);
             if (Widgets.ButtonText(buttonsRect, TradeSession.giftMode ? ("OfferGifts".Translate() + " (" + FactionGiftUtility.GetGoodwillChange(TradeSession.deal.AllTradeables, TradeSession.trader.Faction).ToStringWithSign() + ")") : "AcceptButton".Translate(), true, true, true))
@@ -512,6 +514,70 @@ namespace TradeUI
             GenUI.ResetLabelAlign();
             GUI.EndGroup();
         }
+
+        public static void DrawCurrencyTradableRow(Rect rect, Tradeable trad, bool highlight)
+        {
+            if (highlight)
+            {
+                Widgets.DrawLightHighlight(rect);
+            }
+
+            // [        icon [i] Silver     my amount      < transfer amount        their amount            ]
+
+            Text.Font = GameFont.Medium;
+            GUI.BeginGroup(rect);
+
+            // Draw transfer amount
+            Rect transferRect = new Rect(rect.center.x - (240 / 2), 0f, 240f, rect.height);
+            bool flash = Time.time - Dialog_Trade.lastCurrencyFlashTime < 1f && trad.IsCurrency;
+            TransferableUIUtility.DoCountAdjustInterface(transferRect, trad, 0, trad.GetMinimumToTransfer(), trad.GetMaximumToTransfer(), flash, null, false);
+            //GUI.Label(transferRect, "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+
+            // Draw owned amount
+            int ourAmount = trad.CountHeldBy(Transactor.Colony);
+            if (ourAmount != 0)
+            {
+                Text.Anchor = TextAnchor.MiddleRight;
+                float ourAmountWidth = 100f;
+                var ourRect = new Rect(rect.center.x - (ourAmountWidth / 2) - 300, 0f, ourAmountWidth, rect.height); ;
+                if (Mouse.IsOver(ourRect))
+                {
+                    Widgets.DrawHighlight(ourRect);
+                }
+                Rect rect8 = ourRect;
+                rect8.xMin += 5f;
+                rect8.xMax -= 5f;
+                Widgets.Label(rect8, ourAmount.ToStringCached());
+                TooltipHandler.TipRegionByKey(ourRect, "ColonyCount");
+            }
+
+            // Draw their amount
+            int theirAmount = trad.CountHeldBy(Transactor.Trader);
+            if (theirAmount != 0 && trad.IsThing)
+            {
+                Text.Anchor = TextAnchor.MiddleLeft;
+                float theirAmountWidth = 100f;
+                var theirRect = new Rect(rect.center.x - (theirAmountWidth / 2) + 300, 0f, theirAmountWidth, rect.height);
+                if (Mouse.IsOver(theirRect))
+                {
+                    Widgets.DrawHighlight(theirRect);
+                }
+                Rect rect3 = theirRect;
+                rect3.xMin += 5f;
+                rect3.xMax -= 5f;
+                Widgets.Label(rect3, theirAmount.ToStringCached());
+                TooltipHandler.TipRegionByKey(theirRect, "TraderCount");
+            }
+
+            // Draw icon, info, name
+            float num = rect.width;
+            Rect idRect = new Rect(0f, 0f, num, rect.height);
+            Log.Message($"{idRect.x}, {idRect.y}, {idRect.width}, {idRect.height}");
+            //GUI.Label(idRect, "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+            TransferableUIUtility.DrawTransferableInfo(trad, idRect, trad.TraderWillTrade ? Color.white : RimWorld.TradeUI.NoTradeColor);
+            GenUI.ResetLabelAlign();
+            GUI.EndGroup();
+        }
     }
 
     [HarmonyPatch(typeof(RimWorld.TransferableUIUtility), "DoCountAdjustInterfaceInternal")]
@@ -534,13 +600,13 @@ namespace TradeUI
             //GUI.Label(miniRect, "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
 
             // TODO: WHAT IS THIS? Are these pixel coords correct?
-            if (flash)
+            /*if (flash)
             {
                 if (TradeUIParameters.Singleton.isDrawingColonyItems)
                     GUI.DrawTexture(new Rect(rect.x, rect.center.y - 12.5f, 90f, 25f).Rounded(), TransferableUIUtility.FlashTex);
                 else
                     GUI.DrawTexture(miniRect, TransferableUIUtility.FlashTex);
-            }
+            }*/
 
             TransferableOneWay transferableOneWay = trad as TransferableOneWay;
             bool flag = transferableOneWay != null && transferableOneWay.HasAnyThing && transferableOneWay.AnyThing is Pawn && transferableOneWay.MaxCount == 1;
@@ -555,7 +621,8 @@ namespace TradeUI
                 {
                     GUI.color = ((trad.CountToTransfer == 0) ? TransferableUIUtility.ZeroCountColor : Color.white);
                     Text.Anchor = TextAnchor.MiddleCenter;
-                    Widgets.Label(miniRect, trad.CountToTransfer.ToStringCached());
+                    // Make cost always positive (keep this??)
+                    Widgets.Label(miniRect, Mathf.Abs(trad.CountToTransfer).ToStringCached());
                 }
             }
             else if (flag)
@@ -584,6 +651,9 @@ namespace TradeUI
                     textRect.xMin += 60f + ARROW_MARGIN;
                 }
                 textRect.width = 55f;
+                
+                // Draw transfer amount
+                // TODO make this always show positive numbers
                 int countToTransfer = trad.CountToTransfer;
                 string editBuffer = trad.EditBuffer;
                 Widgets.TextFieldNumeric<int>(textRect, ref countToTransfer, ref editBuffer, (float)min, (float)max);
@@ -600,7 +670,7 @@ namespace TradeUI
                 int num2 = GenUI.CurrentAdjustmentMultiplier();
 
                 // Fix VANILLA bug that items with durability cause "<<" and ">>" to appear even when there is only one of them
-                // e.g. I have "Flak Pants (normal) 98%" and they have "Flak Pants (normal)" the game will incorrectly show ">>" even though it stacks out pants in entirely different rows
+                // e.g. I have "Flak Pants (normal) 98%" and they have "Flak Pants (normal)" the game will incorrectly show ">>" even though it stacks our pants in entirely different rows
                 bool onlyHasOneItem = false;
                 if (TradeUIParameters.Singleton.isDrawingColonyItems)
                     onlyHasOneItem = trad.GetMinimumToTransfer() == -1;
@@ -716,9 +786,9 @@ namespace TradeUI
                 }
             }
 
+            // Draw arrow texture
             if (trad.CountToTransfer != 0)
             {
-                // TODO: fix silver having its arrow off-center
                 float textBoxCenter = 0f;
                 if (TradeUIParameters.Singleton.isDrawingColonyItems)
                 {
