@@ -291,7 +291,7 @@ namespace TradeUI
 
             // Draw vertical divider
             GUI.BeginGroup(mainRect);
-            Widgets.DrawLineVertical(halfWidth - 1, 0, mainRect.height);
+            Widgets.DrawLineVertical(halfWidth - 1, leftHeaderRect.height, mainRect.height - leftHeaderRect.height);
             GUI.EndGroup();
 
             // Calculate scroll height
