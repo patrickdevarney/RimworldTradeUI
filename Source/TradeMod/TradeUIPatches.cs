@@ -14,7 +14,9 @@ using RimWorld.Planet;
  * * for items that only exist on one side, once it is queued to switch sides then you can't use any buttons
  * * if the item doesn't exist on the other side, we could make it visible? I queue pants to sell, trader doesn't have it, add a pants slot with << < arrows to return it to me? visible price will not be correct
  * 
- * Move silver to the bottom
+ * Fix silver row overlapping footer buttons
+ * 
+ * Format silver row to be readable (larger text, shift text left/right)
  * 
  * Test with various traders
  * Test multiplayer
