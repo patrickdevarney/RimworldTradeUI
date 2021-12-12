@@ -14,6 +14,8 @@ using RimWorld.Planet;
  * * for items that only exist on one side, once it is queued to switch sides then you can't use any buttons
  * * if the item doesn't exist on the other side, we could make it visible? I queue pants to sell, trader doesn't have it, add a pants slot with << < arrows to return it to me? visible price will not be correct
  * 
+ * Move silver to the bottom
+ * 
  * Test with various traders
  * Test multiplayer
  */
@@ -93,18 +95,30 @@ namespace TradeUI
             //inRect.yMin += TransferableUIUtility.SortersHeight;
             // Calculate space for left/right rects
             //Rect mainRect = new Rect(0f, 58f, inRect.width, inRect.height - 58f - 38f - 20f);
-            const float FOOTER_HEIGHT = 58f;
+            const float FOOTER_HEIGHT = 90;//58f;
             Rect twoColumnRect = new Rect(0f, inRect.yMin + TransferableUIUtility.SortersHeight, inRect.width, inRect.height - FOOTER_HEIGHT - TransferableUIUtility.SortersHeight);
 
             // DRAW THE LEFT/RIGHT AREAS
             __instance.FillMainRect(twoColumnRect);
 
+            Rect footerSilverRect = new Rect(0f, inRect.height - FOOTER_HEIGHT + 3, inRect.width, FOOTER_HEIGHT - 55);
+            if (__instance.cachedCurrencyTradeable != null)
+            {
+                //float num3 = inRect.width - 16f;
+                RimWorld.TradeUI.DrawTradeableRow(footerSilverRect, __instance.cachedCurrencyTradeable, 1);
+                GUI.color = Color.gray;
+                Widgets.DrawLineHorizontal(0f, footerSilverRect.yMin, inRect.width);
+                GUI.color = Color.white;
+            }
+
+            // Draw bottom buttons
             Text.Font = GameFont.Small;
-            Rect rect4 = new Rect(inRect.width / 2f - Dialog_Trade.AcceptButtonSize.x / 2f,
-                inRect.height - FOOTER_HEIGHT + 3, // Add slight vertical buffer
+            Rect buttonsRect = new Rect(inRect.width / 2f - Dialog_Trade.AcceptButtonSize.x / 2f,
+                //inRect.height - FOOTER_HEIGHT + 3, // Add slight vertical buffer
+                inRect.height - 55,
                 Dialog_Trade.AcceptButtonSize.x,
                 Dialog_Trade.AcceptButtonSize.y);
-            if (Widgets.ButtonText(rect4, TradeSession.giftMode ? ("OfferGifts".Translate() + " (" + FactionGiftUtility.GetGoodwillChange(TradeSession.deal.AllTradeables, TradeSession.trader.Faction).ToStringWithSign() + ")") : "AcceptButton".Translate(), true, true, true))
+            if (Widgets.ButtonText(buttonsRect, TradeSession.giftMode ? ("OfferGifts".Translate() + " (" + FactionGiftUtility.GetGoodwillChange(TradeSession.deal.AllTradeables, TradeSession.trader.Faction).ToStringWithSign() + ")") : "AcceptButton".Translate(), true, true, true))
             {
                 System.Action action = delegate ()
                 {
@@ -139,7 +153,7 @@ namespace TradeUI
                 }
                 Event.current.Use();
             }
-            if (Widgets.ButtonText(new Rect(rect4.x - 10f - Dialog_Trade.OtherBottomButtonSize.x, rect4.y, Dialog_Trade.OtherBottomButtonSize.x, Dialog_Trade.OtherBottomButtonSize.y), "ResetButton".Translate(), true, true, true))
+            if (Widgets.ButtonText(new Rect(buttonsRect.x - 10f - Dialog_Trade.OtherBottomButtonSize.x, buttonsRect.y, Dialog_Trade.OtherBottomButtonSize.x, Dialog_Trade.OtherBottomButtonSize.y), "ResetButton".Translate(), true, true, true))
             {
                 //SoundDefOf.Tick_Low.PlayOneShotOnCamera(null);
                 Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
@@ -147,13 +161,13 @@ namespace TradeUI
                 __instance.CacheTradeables();
                 __instance.CountToTransferChanged();
             }
-            if (Widgets.ButtonText(new Rect(rect4.xMax + 10f, rect4.y, Dialog_Trade.OtherBottomButtonSize.x, Dialog_Trade.OtherBottomButtonSize.y), "CancelButton".Translate(), true, true, true))
+            if (Widgets.ButtonText(new Rect(buttonsRect.xMax + 10f, buttonsRect.y, Dialog_Trade.OtherBottomButtonSize.x, Dialog_Trade.OtherBottomButtonSize.y), "CancelButton".Translate(), true, true, true))
             {
                 __instance.Close(true);
                 Event.current.Use();
             }
             float y = Dialog_Trade.OtherBottomButtonSize.y;
-            Rect rect5 = new Rect(inRect.width - y, rect4.y, y, y);
+            Rect rect5 = new Rect(inRect.width - y, buttonsRect.y, y, y);
             if (Widgets.ButtonImageWithBG(rect5, Dialog_Trade.ShowSellableItemsIcon, new Vector2?(new Vector2(32f, 32f))))
             {
                 Find.WindowStack.Add(new Dialog_SellableItems(TradeSession.trader));
@@ -162,7 +176,7 @@ namespace TradeUI
             Faction faction = TradeSession.trader.Faction;
             if (faction != null && !__instance.giftsOnly && !faction.def.permanentEnemy)
             {
-                Rect rect6 = new Rect(rect5.x - y - 4f, rect4.y, y, y);
+                Rect rect6 = new Rect(rect5.x - y - 4f, buttonsRect.y, y, y);
                 if (TradeSession.giftMode)
                 {
                     if (Widgets.ButtonImageWithBG(rect6, Dialog_Trade.TradeModeIcon, new Vector2?(new Vector2(32f, 32f))))
@@ -197,7 +211,7 @@ namespace TradeUI
     }
 
     [HarmonyPatch(typeof(RimWorld.Dialog_Trade), "FillMainRect")]
-    static class Harmony_DialogTrade_FillMainRect
+    public static class Harmony_DialogTrade_FillMainRect
     {
         // We may need to override this
         static bool Prefix(ref UnityEngine.Rect mainRect, ref List<Tradeable> ___cachedTradeables, ref Dialog_Trade __instance)
@@ -225,7 +239,7 @@ namespace TradeUI
                 true).ToStringPercent()));
 
             // Draw money
-            if (__instance.cachedCurrencyTradeable != null)
+            if (false && __instance.cachedCurrencyTradeable != null)
             {
                 MyDrawTradableRow(new Rect(0f, 58f, leftHeaderRect.width, 30f), __instance.cachedCurrencyTradeable, -1, true);
             }
@@ -261,7 +275,7 @@ namespace TradeUI
             Widgets.Label(new Rect(0, 30f, rightHeaderRect.width, rightHeaderRect.height - 30), TradeSession.trader.TraderKind.LabelCap);
 
             // Draw money
-            if (__instance.cachedCurrencyTradeable != null)
+            if (false && __instance.cachedCurrencyTradeable != null)
             {
                 MyDrawTradableRow(new Rect(0f, 58f, leftHeaderRect.width, 30f), __instance.cachedCurrencyTradeable, -1, false);
             }
@@ -377,7 +391,7 @@ namespace TradeUI
             scrollPosition = GUI.BeginScrollView(outRect, scrollPosition, viewRect, GUIStyle.none, GUIStyle.none);
         }
 
-        static void MyDrawTradableRow(Rect mainRect, Tradeable trad, int index, bool isOurs)
+        public static void MyDrawTradableRow(Rect mainRect, Tradeable trad, int index, bool isOurs)
         {
             if (Mathf.Abs(index) % 2 == 1)
             {
