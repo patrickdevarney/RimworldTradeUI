@@ -277,9 +277,9 @@ namespace TradeUI
             GUI.EndGroup();
 
             // Draw vertical divider
-            GUI.BeginGroup(mainRect);
+            /*GUI.BeginGroup(mainRect);
             Widgets.DrawLineVertical(halfWidth - 1, leftHeaderRect.height, mainRect.height - leftHeaderRect.height);
-            GUI.EndGroup();
+            GUI.EndGroup();*/
 
             // Calculate scroll height
             float leftHeight = 6f;
@@ -297,7 +297,7 @@ namespace TradeUI
             // Start scroll rect down a bit vertically
             Rect leftScrollRect = new Rect(0, mainRect.y + leftHeaderRect.height, halfWidth, mainRect.height - leftHeaderRect.height);
             Rect leftInsideScrollRect = new Rect(0, 0, (leftScrollRect.width - 16f), leftHeight);
-            Widgets.BeginScrollView(leftScrollRect, ref TradeUIParameters.Singleton.scrollPositionLeft, leftInsideScrollRect, true);
+            BeginScrollViewForceDraw(leftScrollRect, ref TradeUIParameters.Singleton.scrollPositionLeft, leftInsideScrollRect, true);
             float num = 6f;
             float num2 = TradeUIParameters.Singleton.scrollPositionLeft.y - 30f;
             float num3 = TradeUIParameters.Singleton.scrollPositionLeft.y + leftScrollRect.height;
@@ -327,7 +327,7 @@ namespace TradeUI
             // Draw right view
             Rect rightScrollRect = new Rect(halfWidth, mainRect.y + rightHeaderRect.height, halfWidth, mainRect.height - rightHeaderRect.height);
             Rect rightInnerRect = new Rect(0, 0, (rightScrollRect.width - 16f), rightHeight);
-            Widgets.BeginScrollView(rightScrollRect, ref TradeUIParameters.Singleton.scrollPositionRight, rightInnerRect, true);
+            BeginScrollViewForceDraw(rightScrollRect, ref TradeUIParameters.Singleton.scrollPositionRight, rightInnerRect, true);
             num = 6f;
             num2 = TradeUIParameters.Singleton.scrollPositionRight.y - 30f;
             num3 = TradeUIParameters.Singleton.scrollPositionRight.y + rightScrollRect.height;
@@ -357,6 +357,24 @@ namespace TradeUI
 
             // Skip vanilla behavior
             return false;
+        }
+
+        static void BeginScrollViewForceDraw(Rect outRect, ref Vector2 scrollPosition, Rect viewRect, bool showScrollbars = true)
+        {
+            if (Widgets.mouseOverScrollViewStack.Count > 0)
+            {
+                Widgets.mouseOverScrollViewStack.Push(Widgets.mouseOverScrollViewStack.Peek() && outRect.Contains(Event.current.mousePosition));
+            }
+            else
+            {
+                Widgets.mouseOverScrollViewStack.Push(outRect.Contains(Event.current.mousePosition));
+            }
+            if (showScrollbars)
+            {
+                scrollPosition = GUI.BeginScrollView(outRect, scrollPosition, viewRect, false, true);
+                return;
+            }
+            scrollPosition = GUI.BeginScrollView(outRect, scrollPosition, viewRect, GUIStyle.none, GUIStyle.none);
         }
 
         static void MyDrawTradableRow(Rect mainRect, Tradeable trad, int index, bool isOurs)
@@ -564,7 +582,15 @@ namespace TradeUI
                 TransferablePositiveCountDirection positiveCountDirection = trad.PositiveCountDirection;
                 int num = (positiveCountDirection == TransferablePositiveCountDirection.Source) ? 1 : -1;
                 int num2 = GenUI.CurrentAdjustmentMultiplier();
-                bool onlyHasOneItem = trad.GetRange() == 1;
+
+                // Fix VANILLA bug that items with durability cause "<<" and ">>" to appear even when there is only one of them
+                // e.g. I have "Flak Pants (normal) 98%" and they have "Flak Pants (normal)" the game will incorrectly show ">>" even though it stacks out pants in entirely different rows
+                bool onlyHasOneItem = false;
+                if (TradeUIParameters.Singleton.isDrawingColonyItems)
+                    onlyHasOneItem = trad.GetMinimumToTransfer() == -1;
+                else
+                    onlyHasOneItem = trad.GetMaximumToTransfer() == 1;
+
                 if (!TradeUIParameters.Singleton.isDrawingColonyItems && trad.CanAdjustBy(num * num2).Accepted)
                 {
                     Rect arrowRect = new Rect(miniRect.x + 30f, rect.y, 30f, rect.height);
