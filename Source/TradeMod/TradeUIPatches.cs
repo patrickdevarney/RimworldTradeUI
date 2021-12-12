@@ -10,15 +10,8 @@ using RimWorld.Planet;
  * 
  * Determine what "flash" is in Harmony_TransferableUIUtility_DoCountAdjustInterfaceInternal and if it has correct pixel coords
  * 
- * Fix Animal bond/ridability icons overlapping text name
- * 
- * Include colony/trade info IN the columns themselves
- * * Silver current amount
- * 
  * Fix unintuitive behavior that if I sell/buy all of an item, it is strange to reverse this move
- * * for items that exist on both sides (steel), it works well
  * * for items that only exist on one side, once it is queued to switch sides then you can't use any buttons
- * * can't swap the buttons because we only have space for two buttons. They both have to be > and >>
  * * if the item doesn't exist on the other side, we could make it visible? I queue pants to sell, trader doesn't have it, add a pants slot with << < arrows to return it to me? visible price will not be correct
  * 
  * Test with various traders
@@ -97,26 +90,20 @@ namespace TradeUI
                 myThis.sorter2 = x;
                 myThis.CacheTradeables();
             });
-
-            float num2 = 0f;
-            /*if (__instance.cachedCurrencyTradeable != null)
-            {
-                float num3 = inRect.width - 16f;
-                RimWorld.TradeUI.DrawTradeableRow(new Rect(0f, 58f, num3, 30f), __instance.cachedCurrencyTradeable, 1);
-                GUI.color = Color.gray;
-                Widgets.DrawLineHorizontal(0f, 87f, num3);
-                GUI.color = Color.white;
-                num2 = 30f;
-            }*/
-
+            //inRect.yMin += TransferableUIUtility.SortersHeight;
             // Calculate space for left/right rects
-            Rect mainRect = new Rect(0f, 58f + num2, inRect.width, inRect.height - 58f - 38f - num2 - 20f);
+            //Rect mainRect = new Rect(0f, 58f, inRect.width, inRect.height - 58f - 38f - 20f);
+            const float FOOTER_HEIGHT = 58f;
+            Rect twoColumnRect = new Rect(0f, inRect.yMin + TransferableUIUtility.SortersHeight, inRect.width, inRect.height - FOOTER_HEIGHT - TransferableUIUtility.SortersHeight);
 
             // DRAW THE LEFT/RIGHT AREAS
-            __instance.FillMainRect(mainRect);
+            __instance.FillMainRect(twoColumnRect);
 
             Text.Font = GameFont.Small;
-            Rect rect4 = new Rect(inRect.width / 2f - Dialog_Trade.AcceptButtonSize.x / 2f, inRect.height - 55f, Dialog_Trade.AcceptButtonSize.x, Dialog_Trade.AcceptButtonSize.y);
+            Rect rect4 = new Rect(inRect.width / 2f - Dialog_Trade.AcceptButtonSize.x / 2f,
+                inRect.height - FOOTER_HEIGHT + 3, // Add slight vertical buffer
+                Dialog_Trade.AcceptButtonSize.x,
+                Dialog_Trade.AcceptButtonSize.y);
             if (Widgets.ButtonText(rect4, TradeSession.giftMode ? ("OfferGifts".Translate() + " (" + FactionGiftUtility.GetGoodwillChange(TradeSession.deal.AllTradeables, TradeSession.trader.Faction).ToStringWithSign() + ")") : "AcceptButton".Translate(), true, true, true))
             {
                 System.Action action = delegate ()
@@ -398,23 +385,27 @@ namespace TradeUI
 
             // TDOO: handle somewhere in the trade what happens when I select (sell 10 steel + buy 5 steel)
 
+            const float COST_WIDTH = 90f;
+            const float TRANSFER_WIDTH = 160f;
+            const float OWNED_AMOUNT_WIDTH = 75f;
+
             if (!trad.TraderWillTrade)
             {
                 // Since no price will be shown, we will occupy more space
-                xPosition -= 290f;
-                Rect rect5 = new Rect(xPosition, 0f, 290f, mainRect.height);
+                xPosition -= (TRANSFER_WIDTH + COST_WIDTH);
+                Rect rect5 = new Rect(xPosition, 0f, TRANSFER_WIDTH + COST_WIDTH, mainRect.height);
                 // But don't actually consume this space since the price will be "drawn" as empty
-                xPosition += 100;
+                xPosition += COST_WIDTH;
 
                 RimWorld.TradeUI.DrawWillNotTradeText(rect5, "TraderWillNotTrade".Translate());
             }
             else if (ModsConfig.IdeologyActive && TransferableUIUtility.TradeIsPlayerSellingToSlavery(trad, TradeSession.trader.Faction) && !new HistoryEvent(HistoryEventDefOf.SoldSlave, TradeSession.playerNegotiator.Named(HistoryEventArgsNames.Doer)).DoerWillingToDo())
             {
                 // Since no price will be shown, will we occupy more space
-                xPosition -= 290f;
-                Rect rect5 = new Rect(xPosition, 0f, 290f, mainRect.height);
+                xPosition -= (TRANSFER_WIDTH + COST_WIDTH);
+                Rect rect5 = new Rect(xPosition, 0f, TRANSFER_WIDTH + COST_WIDTH, mainRect.height);
                 // But don't actually consume this space since the price will be "drawn" as empty
-                xPosition += 100;
+                xPosition += COST_WIDTH;
 
                 RimWorld.TradeUI.DrawWillNotTradeText(rect5, "NegotiatorWillNotTradeSlaves".Translate(TradeSession.playerNegotiator));
                 if (Mouse.IsOver(rect5))
@@ -425,8 +416,8 @@ namespace TradeUI
             }
             else
             {
-                xPosition -= 190f;
-                Rect rect5 = new Rect(xPosition, 0f, 190f, mainRect.height);
+                xPosition -= TRANSFER_WIDTH;
+                Rect rect5 = new Rect(xPosition, 0f, TRANSFER_WIDTH, mainRect.height);
                 // Drawing left/right arrows and transfer amount
                 bool flash = Time.time - Dialog_Trade.lastCurrencyFlashTime < 1f && trad.IsCurrency;
                 // Prevent drawing both left/right arrows
@@ -445,14 +436,14 @@ namespace TradeUI
             if ((isOurs && ownedAmount != 0) || (!isOurs && ownedAmount != 0 && trad.IsThing))
             {
                 // draw sell/buy price
-                xPosition -= 100f;
-                Rect rect6 = new Rect(xPosition, 0f, 100f, mainRect.height);
+                xPosition -= COST_WIDTH;
+                Rect rect6 = new Rect(xPosition, 0f, COST_WIDTH, mainRect.height);
                 Text.Anchor = TextAnchor.MiddleRight;
                 RimWorld.TradeUI.DrawPrice(rect6, trad, isOurs ? TradeAction.PlayerSells : TradeAction.PlayerBuys);
 
                 // draw owned amount
-                xPosition -= 75f;
-                Rect rect7 = new Rect(xPosition, 0f, 75f, mainRect.height);
+                xPosition -= OWNED_AMOUNT_WIDTH;
+                Rect rect7 = new Rect(xPosition, 0f, OWNED_AMOUNT_WIDTH, mainRect.height);
                 if (Mouse.IsOver(rect7))
                 {
                     Widgets.DrawHighlight(rect7);
@@ -466,7 +457,7 @@ namespace TradeUI
             }
             else
             {
-                xPosition -= 175f;
+                xPosition -= (OWNED_AMOUNT_WIDTH + COST_WIDTH);
             }
 
             // draw animal bond/ridability
