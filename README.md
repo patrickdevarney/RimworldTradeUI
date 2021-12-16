@@ -17,8 +17,8 @@ This mod supports the RimWorld Multiplayer mod.
 Future plans
 
 If I do continue to add to this mod, some ideas are:
-*Add alternate view that has colony vs trader in separate tabs
-*Add button to UI that maxes out the amount that can be sold/bought given the colony's/trader's current amount of money (no more fiddling with finding the perfect amount of Cloth to sell to make the trader broke)
-*Re-color "Reset", "Cancel", "Accept" buttons for clarity (Cancel = red, Accept = green)
+-Add alternate view that has colony vs trader in separate tabs
+-Add button to UI that maxes out the amount that can be sold/bought given the colony's/trader's current amount of money (no more fiddling with finding the perfect amount of Cloth to sell to make the trader broke)
+-Re-color "Reset", "Cancel", "Accept" buttons for clarity (Cancel = red, Accept = green)
 
 I welcome any ideas to improve the current UI!
