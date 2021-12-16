@@ -25,7 +25,7 @@ namespace TradeUI
     {
         static TradeUIPatches()
         {
-            Harmony.DEBUG = true;
+            //Harmony.DEBUG = true;
             new Harmony("rimworld.hobtook.tradeui").PatchAll();
         }
     }
