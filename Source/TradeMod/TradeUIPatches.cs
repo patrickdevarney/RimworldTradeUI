@@ -295,7 +295,7 @@ namespace TradeUI
                 rightHeaderRect.height -= 30;
             }
 
-            //GUI.color = Color.gray;
+            GUI.color = Color.gray;
             Widgets.DrawLineHorizontal(0f, rightHeaderRect.height - 1, rightHeaderRect.width);
             GUI.color = Color.white;
 
