@@ -4,26 +4,18 @@ using RimWorld;
 using System.Collections.Generic;
 using UnityEngine;
 using RimWorld.Planet;
+using System.Reflection;
 
 /*
- * TODO list
+ * TODO list for release
  * 
- * Determine what "flash" is in Harmony_TransferableUIUtility_DoCountAdjustInterfaceInternal and if it has correct pixel coords
+ * 
+ * TODO for future
+ * Change colors of buttons at bottom (Accept green, Cancel red, Reset, orange/default)
  * 
  * Fix unintuitive behavior that if I sell/buy all of an item, it is strange to reverse this move
  * * Make transfer numbers always postive
  * * If user types a positive number on our side, interpret it as negative
- * 
- * Fix silver icon not centered verticall
- * 
- * Fix silver transfer total not centered horizontally
- * 
- * Fix silver arrow not centered on transfer total
- * 
- * Change colors (Accept green, Cancel red, Reset, orange/default)
- * 
- * Test with various traders
- * Test multiplayer
  */
 
 namespace TradeUI
@@ -33,6 +25,7 @@ namespace TradeUI
     {
         static TradeUIPatches()
         {
+            Harmony.DEBUG = true;
             new Harmony("rimworld.hobtook.tradeui").PatchAll();
         }
     }
@@ -42,22 +35,35 @@ namespace TradeUI
     {
         static void Prefix()
         {
-            //Log.Message("[TradeUI] Dialog_Trade.PostOpen prefix");
             TradeUIParameters.Singleton.Reset();
         }
     }
 
-    /*[HarmonyPatch(typeof(RimWorld.TradeUI), "DrawTradeableRow")]
-    static class Harmony_TradeUI_DrawTradeableRow
+    [HarmonyPatch]
+    static class PatchTradingWindowWidth
     {
-        // TODO: I need the Rect parameter
-        static void Prefix()
+        static void Postfix(ref Vector2 __result)
         {
-            //Log.Message("[TradeUI] TradeUI.DrawTradeableRow prefix");
-            // TODO: we need to only draw ours/theirs
-            // It may be easier to avoid calling this entirely from FillMainRect()
+            __result.x = Mathf.Min(UI.screenWidth, __result.x + 360);
         }
-    }*/
+
+        public static bool Prepare()
+        {
+            //return ModLister.HasActiveModWithName("Multiplayer");
+            return LoadedModManager.RunningModsListForReading.Any(
+                m => m.PackageId == "rwmt.Multiplayer".ToLowerInvariant()
+                );
+        }
+
+        public static MethodInfo TargetMethod()
+        {
+            System.Type multiplayerTradeUIType = System.Type.GetType("Multiplayer.Client.TradingWindow, Multiplayer");
+            var methodInfo = AccessTools.Property(multiplayerTradeUIType, "InitialSize").GetGetMethod();
+            if (methodInfo == null)
+                Log.Error("[TradeUI] failed to find multiplayer method info");
+            return methodInfo;
+        }
+    }
 
     [HarmonyPatch(typeof(RimWorld.Dialog_Trade), "InitialSize", MethodType.Getter)]
     static class Harmony_DialogTrade_InitialSize
@@ -80,7 +86,7 @@ namespace TradeUI
         static bool Prefix(ref UnityEngine.Rect inRect, ref Dialog_Trade __instance)
         {
             var myThis = __instance;
-            Log.Message($"[TradeUI] Dialog_Trade.DoWindowContents prefix");
+            //Log.Message($"[TradeUI] Dialog_Trade.DoWindowContents prefix");
             if (__instance.playerIsCaravan)
             {
                 CaravanUIUtility.DrawCaravanInfo(new CaravanUIUtility.CaravanInfo(__instance.MassUsage, __instance.MassCapacity, __instance.cachedMassCapacityExplanation, __instance.TilesPerDay, __instance.cachedTilesPerDayExplanation, __instance.DaysWorthOfFood, __instance.ForagedFoodPerDay, __instance.cachedForagedFoodPerDayExplanation, __instance.Visibility, __instance.cachedVisibilityExplanation, -1f, -1f, null), null, __instance.Tile, null, -9999f, new Rect(12f, 0f, inRect.width - 24f, 40f), true, null, false);
@@ -89,6 +95,7 @@ namespace TradeUI
             TradeSession.deal.UpdateCurrencyCount();
             GUI.BeginGroup(inRect);
             inRect = inRect.AtZero();
+            //Log.Message($"[TradeUI] Harmony_DialogTrade_DoWindowContents inRect width {inRect.width})");
             TransferableUIUtility.DoTransferableSorters(__instance.sorter1, __instance.sorter2, delegate (TransferableSorterDef x)
             {
                 myThis.sorter1 = x;
@@ -571,12 +578,64 @@ namespace TradeUI
 
             // Draw icon, info, name
             float num = rect.width;
-            Rect idRect = new Rect(0f, 0f, num, rect.height);
-            Log.Message($"{idRect.x}, {idRect.y}, {idRect.width}, {idRect.height}");
+            //Log.Message($" full silver rect = {rect.x}, {rect.y}, {rect.width}, {rect.height}");
+            Rect idRect = new Rect(0f, 0, num, rect.height);
+            //Log.Message($" silver id rect = {idRect.x}, {idRect.y}, {idRect.width}, {idRect.height}");
+            //TransferableUIUtility.DrawTransferableInfo(trad, idRect, trad.TraderWillTrade ? Color.white : RimWorld.TradeUI.NoTradeColor);
+            MyDrawTransferableInfoSilver(trad, idRect, trad.TraderWillTrade ? Color.white : RimWorld.TradeUI.NoTradeColor);
             //GUI.Label(idRect, "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
-            TransferableUIUtility.DrawTransferableInfo(trad, idRect, trad.TraderWillTrade ? Color.white : RimWorld.TradeUI.NoTradeColor);
             GenUI.ResetLabelAlign();
             GUI.EndGroup();
+        }
+
+        static void MyDrawTransferableInfoSilver(Transferable trad, Rect idRect, Color labelColor)
+        {
+            if (!trad.HasAnyThing && trad.IsThing)
+            {
+                return;
+            }
+            if (Mouse.IsOver(idRect))
+            {
+                Widgets.DrawHighlight(idRect);
+            }
+            Rect rect = new Rect(0f, (idRect.height - 27) / 2f, 27f, 27f);
+            if (trad.IsThing)
+            {
+                Widgets.ThingIcon(rect, trad.AnyThing, 1f, null);
+            }
+            else
+            {
+                trad.DrawIcon(rect);
+            }
+            if (trad.IsThing)
+            {
+                Widgets.InfoCardButton(40f, (idRect.height / 2f) - 12f, trad.AnyThing);
+            }
+            Text.Anchor = TextAnchor.MiddleLeft;
+            Rect rect2 = new Rect(80f, 0f, idRect.width - 80f, idRect.height);
+            Text.WordWrap = false;
+            GUI.color = labelColor;
+            Widgets.Label(rect2, trad.LabelCap);
+            GUI.color = Color.white;
+            Text.WordWrap = true;
+            if (Mouse.IsOver(idRect))
+            {
+                Transferable localTrad = trad;
+                TooltipHandler.TipRegion(idRect, new TipSignal(delegate ()
+                {
+                    if (!localTrad.HasAnyThing && localTrad.IsThing)
+                    {
+                        return "";
+                    }
+                    string text = localTrad.LabelCap;
+                    string tipDescription = localTrad.TipDescription;
+                    if (!tipDescription.NullOrEmpty())
+                    {
+                        text = text + ": " + tipDescription + TransferableUIUtility.ContentSourceDescription(localTrad.AnyThing);
+                    }
+                    return text;
+                }, localTrad.GetHashCode()));
+            }
         }
     }
 
@@ -596,8 +655,7 @@ namespace TradeUI
             // [60 text box][10 margin to fit arrow][60 arrows][5 margin]
             // Need a width of 125
 
-            Rect miniRect = new Rect(rect.xMax - ARROW_MARGIN - EDGE_MARGIN - 120f, rect.center.y - 12.5f, 120f + ARROW_MARGIN, 25f).Rounded();
-            //GUI.Label(miniRect, "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
+            Rect miniRect = (!trad.Interactive || readOnly) ? rect : new Rect(rect.xMax - ARROW_MARGIN - EDGE_MARGIN - 120f, rect.center.y - 12.5f, 120f + ARROW_MARGIN, 25f).Rounded();
 
             // TODO: WHAT IS THIS? Are these pixel coords correct?
             /*if (flash)
@@ -615,14 +673,15 @@ namespace TradeUI
                 if (flag)
                 {
                     bool flag2 = trad.CountToTransfer != 0;
-                    Widgets.Checkbox(miniRect.position, ref flag2, 24f, true, false, null, null);
+                    Widgets.Checkbox(rect.position, ref flag2, 24f, true, false, null, null);
                 }
                 else
                 {
                     GUI.color = ((trad.CountToTransfer == 0) ? TransferableUIUtility.ZeroCountColor : Color.white);
                     Text.Anchor = TextAnchor.MiddleCenter;
-                    // Make cost always positive (keep this??)
+                    // Make transfer amount always positive?
                     Widgets.Label(miniRect, Mathf.Abs(trad.CountToTransfer).ToStringCached());
+                    //GUI.Label(miniRect, "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
                 }
             }
             else if (flag)
@@ -790,7 +849,16 @@ namespace TradeUI
             if (trad.CountToTransfer != 0)
             {
                 float textBoxCenter = 0f;
-                if (TradeUIParameters.Singleton.isDrawingColonyItems)
+                if (!trad.Interactive || readOnly)
+                {
+                    // TODO: shift this a little left/right to accomodate the larger text
+                    textBoxCenter = miniRect.center.x;
+                    if (trad.CountToTransfer > 0)
+                        textBoxCenter -= 15;
+                    else
+                        textBoxCenter += 15;
+                }
+                else if (TradeUIParameters.Singleton.isDrawingColonyItems)
                 {
                     textBoxCenter = miniRect.xMin + 30f;
                 }

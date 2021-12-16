@@ -1,5 +1,0 @@
-E:\Repos\TradeMod\build\TradeUI.dll
-E:\Repos\TradeMod\Source\TradeMod\obj\Debug\TradeUI.csproj.CoreCompileInputs.cache
-E:\Repos\TradeMod\Source\TradeMod\obj\Debug\TradeUI.dll
-E:\Repos\TradeMod\Source\TradeMod\obj\Debug\TradeUI.csprojAssemblyReference.cache
-E:\Repos\TradeMod\Source\TradeMod\obj\Debug\TradeUI.csproj.CopyComplete
