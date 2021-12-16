@@ -645,6 +645,14 @@ namespace TradeUI
         static bool Prefix(Rect rect, Transferable trad, int index, int min, int max, bool flash, bool readOnly)
         {
             //Log.Message("[TradeUI] TransferableUIUtility.DoCountAdjustInterfaceInternal prefix");
+
+            // Skip this behavior if we aren't in a trade UI (transport pod)
+            if (!Find.WindowStack.IsOpen<Dialog_Trade>())
+            {
+                //Log.Message("[TradeUI] Dialog_Trade window is not open. Drawing vanilla UI buttons");
+                return true;
+            }
+
             rect = rect.Rounded();
 
             const float EDGE_MARGIN = 7f;
