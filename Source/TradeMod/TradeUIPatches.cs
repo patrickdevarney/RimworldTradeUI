@@ -259,6 +259,7 @@ namespace TradeUI
                 leftHeaderRect.height -= 30;
             }
 
+            // TODO: fix one pixel missing between left/right horizontal lines (but drawing it all in one go caused scroll bar to render on top of white line)
             GUI.color = Color.gray;
             Widgets.DrawLineHorizontal(0f, leftHeaderRect.height - 1, leftHeaderRect.width);
             GUI.color = Color.white;
@@ -657,11 +658,15 @@ namespace TradeUI
 
             const float EDGE_MARGIN = 7f;
             const float ARROW_MARGIN = 10f;
-            // theirs
-            // [60 arrows][10 margin to fit arrow][60 text box][5 margin]
+            // theirs = 135 wide
+            // [60 arrows][ARROW_MARGIN][60 text box][EDGE_MARGIN]
             // ours
-            // [60 text box][10 margin to fit arrow][60 arrows][5 margin]
+            // [60 text box][ARROW_MARGIN][60 arrows][EDGE_MARGIN]
             // Need a width of 125
+
+            // Theirs 
+            //[30 button][ARROW_MARGIN][60 text box][ARROW_MARGIN][30 button][EDGE_MARGIN]
+            // I am making this ARROW_MARGIN pixels wider than before
 
             Rect miniRect = (!trad.Interactive || readOnly) ? rect : new Rect(rect.xMax - ARROW_MARGIN - EDGE_MARGIN - 120f, rect.center.y - 12.5f, 120f + ARROW_MARGIN, 25f).Rounded();
 
@@ -688,7 +693,8 @@ namespace TradeUI
                     GUI.color = ((trad.CountToTransfer == 0) ? TransferableUIUtility.ZeroCountColor : Color.white);
                     Text.Anchor = TextAnchor.MiddleCenter;
                     // Make transfer amount always positive?
-                    Widgets.Label(miniRect, Mathf.Abs(trad.CountToTransfer).ToStringCached());
+                    //Widgets.Label(miniRect, Mathf.Abs(trad.CountToTransfer).ToStringCached());
+                    Widgets.Label(miniRect, trad.CountToTransfer.ToStringCached());
                     //GUI.Label(miniRect, "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
                 }
             }
