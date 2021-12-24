@@ -13,6 +13,7 @@ using System.Reflection;
  * 
  * Add tooltip to +- <> buttons
  * 
+ * Add drag-select
  * 
  * TODO low priority
  * Fix gift mode drawing silver arrows REALLY BIG
@@ -106,7 +107,7 @@ namespace TradeUI
                 myThis.sorter2 = x;
                 myThis.CacheTradeables();
             });
-            
+
             // Calculate space for left/right rects
             const float FOOTER_HEIGHT = 110;
             const float BUTTON_HEIGHT = 55;
@@ -130,49 +131,69 @@ namespace TradeUI
                 inRect.height - BUTTON_HEIGHT,
                 Dialog_Trade.AcceptButtonSize.x,
                 Dialog_Trade.AcceptButtonSize.y);
-            if (Widgets.ButtonText(buttonsRect, TradeSession.giftMode ? ("OfferGifts".Translate() + " (" + FactionGiftUtility.GetGoodwillChange(TradeSession.deal.AllTradeables, TradeSession.trader.Faction).ToStringWithSign() + ")") : "AcceptButton".Translate(), true, true, true))
+
+            bool hasTradablesSet = false;
+            foreach(Tradeable t in TradeSession.deal.tradeables)
             {
-                System.Action action = delegate ()
+                if (t.ActionToDo == TradeAction.PlayerBuys || t.ActionToDo == TradeAction.PlayerSells)
                 {
-                    bool flag;
-                    if (TradeSession.deal.TryExecute(out flag))
+                    hasTradablesSet = true;
+                    break;
+                }
+            }
+            if (!hasTradablesSet)
+            {
+                Harmony_TransferableUIUtility_DoCountAdjustInterfaceInternal.DrawGreyButton(new Rect(buttonsRect.x - 10f - Dialog_Trade.OtherBottomButtonSize.x, buttonsRect.y, Dialog_Trade.OtherBottomButtonSize.x, Dialog_Trade.OtherBottomButtonSize.y), "ResetButton".Translate(), true, Color.gray);
+                Harmony_TransferableUIUtility_DoCountAdjustInterfaceInternal.DrawGreyButton(buttonsRect, TradeSession.giftMode ? "OfferGifts".Translate() : "AcceptButton".Translate(), true, Color.gray);
+            }
+            else
+            {
+                if (Widgets.ButtonText(buttonsRect, TradeSession.giftMode ? ("OfferGifts".Translate() + " (" + FactionGiftUtility.GetGoodwillChange(TradeSession.deal.AllTradeables, TradeSession.trader.Faction).ToStringWithSign() + ")") : "AcceptButton".Translate(), true, true, true))
+                {
+                    System.Action action = delegate ()
                     {
-                        if (flag)
+                        bool flag;
+                        if (TradeSession.deal.TryExecute(out flag))
                         {
-                            Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.ExecuteTrade, null);
-                            //SoundDefOf.ExecuteTrade.PlayOneShotOnCamera(null);
-                            Caravan caravan = TradeSession.playerNegotiator.GetCaravan();
-                            if (caravan != null)
+                            if (flag)
                             {
-                                caravan.RecacheImmobilizedNow();
+                                Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.ExecuteTrade, null);
+                                //SoundDefOf.ExecuteTrade.PlayOneShotOnCamera(null);
+                                Caravan caravan = TradeSession.playerNegotiator.GetCaravan();
+                                if (caravan != null)
+                                {
+                                    caravan.RecacheImmobilizedNow();
+                                }
+                                myThis.Close(false);
+                                return;
                             }
-                            myThis.Close(false);
-                            return;
+                            myThis.Close(true);
                         }
-                        myThis.Close(true);
+                    };
+                    if (TradeSession.deal.DoesTraderHaveEnoughSilver())
+                    {
+                        action();
                     }
-                };
-                if (TradeSession.deal.DoesTraderHaveEnoughSilver())
-                {
-                    action();
+                    else
+                    {
+                        __instance.FlashSilver();
+                        //SoundDefOf.ClickReject.PlayOneShotOnCamera(null);
+                        Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.ClickReject, null);
+                        Find.WindowStack.Add(Dialog_MessageBox.CreateConfirmation("ConfirmTraderShortFunds".Translate(), action, false, null, WindowLayer.Dialog));
+                    }
+                    Event.current.Use();
                 }
-                else
+
+                if (Widgets.ButtonText(new Rect(buttonsRect.x - 10f - Dialog_Trade.OtherBottomButtonSize.x, buttonsRect.y, Dialog_Trade.OtherBottomButtonSize.x, Dialog_Trade.OtherBottomButtonSize.y), "ResetButton".Translate(), true, true, true))
                 {
-                    __instance.FlashSilver();
-                    //SoundDefOf.ClickReject.PlayOneShotOnCamera(null);
-                    Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.ClickReject, null);
-                    Find.WindowStack.Add(Dialog_MessageBox.CreateConfirmation("ConfirmTraderShortFunds".Translate(), action, false, null, WindowLayer.Dialog));
+                    //SoundDefOf.Tick_Low.PlayOneShotOnCamera(null);
+                    Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
+                    TradeSession.deal.Reset();
+                    __instance.CacheTradeables();
+                    __instance.CountToTransferChanged();
                 }
-                Event.current.Use();
             }
-            if (Widgets.ButtonText(new Rect(buttonsRect.x - 10f - Dialog_Trade.OtherBottomButtonSize.x, buttonsRect.y, Dialog_Trade.OtherBottomButtonSize.x, Dialog_Trade.OtherBottomButtonSize.y), "ResetButton".Translate(), true, true, true))
-            {
-                //SoundDefOf.Tick_Low.PlayOneShotOnCamera(null);
-                Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
-                TradeSession.deal.Reset();
-                __instance.CacheTradeables();
-                __instance.CountToTransferChanged();
-            }
+            
             if (Widgets.ButtonText(new Rect(buttonsRect.xMax + 10f, buttonsRect.y, Dialog_Trade.OtherBottomButtonSize.x, Dialog_Trade.OtherBottomButtonSize.y), "CancelButton".Translate(), true, true, true))
             {
                 __instance.Close(true);
@@ -250,12 +271,14 @@ namespace TradeUI
                 TradeSession.playerNegotiator.GetStatValue(StatDefOf.TradePriceImprovement,
                 true).ToStringPercent()));
 
+#if false
             // Draw money
             if (false && __instance.cachedCurrencyTradeable != null)
             {
                 MyDrawTradableRow(new Rect(0f, 58f, leftHeaderRect.width, 30f), __instance.cachedCurrencyTradeable, -1, true);
             }
             else
+#endif
             {
                 leftHeaderRect.height -= 30;
             }
@@ -287,12 +310,14 @@ namespace TradeUI
             Text.Anchor = TextAnchor.UpperCenter;
             Widgets.Label(new Rect(0, 30f, rightHeaderRect.width, rightHeaderRect.height - 30), TradeSession.trader.TraderKind.LabelCap);
 
+#if false
             // Draw money
             if (false && __instance.cachedCurrencyTradeable != null)
             {
                 MyDrawTradableRow(new Rect(0f, 58f, leftHeaderRect.width, 30f), __instance.cachedCurrencyTradeable, -1, false);
             }
             else
+#endif
             {
                 rightHeaderRect.height -= 30;
             }
@@ -311,7 +336,7 @@ namespace TradeUI
             // Calculate scroll height
             float leftHeight = 6f;
             float rightHeight = 6f;
-            foreach(var entry in ___cachedTradeables)
+            foreach (var entry in ___cachedTradeables)
             {
                 if (entry.thingsColony != null && entry.thingsColony.Count > 0)
                     leftHeight += 30f;
@@ -694,8 +719,8 @@ namespace TradeUI
                     GUI.color = ((trad.CountToTransfer == 0) ? TransferableUIUtility.ZeroCountColor : Color.white);
                     Text.Anchor = TextAnchor.MiddleCenter;
                     // Make transfer amount always positive?
-                    //Widgets.Label(miniRect, Mathf.Abs(trad.CountToTransfer).ToStringCached());
-                    Widgets.Label(miniRect, trad.CountToTransfer.ToStringCached());
+                    Widgets.Label(miniRect, Mathf.Abs(trad.CountToTransfer).ToStringCached());
+                    //Widgets.Label(miniRect, trad.CountToTransfer.ToStringCached());
                     //GUI.Label(miniRect, "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
                 }
             }
@@ -725,7 +750,7 @@ namespace TradeUI
                     textRect.xMin += 60f + ARROW_MARGIN;
                 }
                 textRect.width = 55f;
-                
+
                 // Draw transfer amount
                 // TODO make this always show positive numbers
                 int countToTransfer = trad.CountToTransfer;
@@ -750,16 +775,16 @@ namespace TradeUI
                 if (TradeUIParameters.Singleton.isDrawingColonyItems)
                 {
                     // Can trade right is we can modify trade amount by -1
-                    canTradeRight = trad.CanAdjustBy(-1 * num2).Accepted;
+                    canTradeRight = trad.CanAdjustBy(-num * num2).Accepted;
                     // Can trade left is we can modify trade amount by +1
-                    canTradeLeft = trad.CanAdjustBy(1 * num2).Accepted;
+                    canTradeLeft = trad.CanAdjustBy(num * num2).Accepted;
                 }
                 else
                 {
                     // Can trade right is we can modify trade amount by +1
-                    canTradeRight = trad.CanAdjustBy(1 * num2).Accepted;
+                    canTradeRight = trad.CanAdjustBy(num * num2).Accepted;
                     // Can trade left is we can modify trade amount by -1
-                    canTradeLeft = trad.CanAdjustBy(-1 * num2).Accepted;
+                    canTradeLeft = trad.CanAdjustBy(-num * num2).Accepted;
                 }
 
                 if (!TradeUIParameters.Singleton.isDrawingColonyItems)
@@ -769,11 +794,26 @@ namespace TradeUI
                     {
                         if (canTradeRight)
                         {
-                            if (Widgets.ButtonText(rightArrowRect, "<", true, true, true))
+                            var clickResult = DrawNormalButton(rightArrowRect, "<", true, true, Widgets.NormalOptionColor);
+                            switch (clickResult)
+                            {
+                                case MyDraggableResult.LeftPressed:
+                                case MyDraggableResult.LeftDraggedThenPressed:
+                                    trad.AdjustBy(num * num2);
+                                    Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
+                                    break;
+                                case MyDraggableResult.RightPressed:
+                                case MyDraggableResult.RightDraggedThenPressed:
+                                    //trad.AdjustBy(num * num2);
+                                    trad.AdjustTo(trad.GetMaximumToTransfer());
+                                    Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
+                                    break;
+                            }
+                            /*if (Widgets.ButtonText(rightArrowRect, "<", true, true, true))
                             {
                                 trad.AdjustBy(num * num2);
                                 Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
-                            }
+                            }*/
                         }
                         else
                         {
@@ -782,11 +822,26 @@ namespace TradeUI
 
                         if (canTradeLeft)
                         {
-                            if (Widgets.ButtonText(leftArrowRect, ">", true, true, true))
+                            var clickResult = DrawNormalButton(leftArrowRect, ">", true, true, Widgets.NormalOptionColor);
+                            switch (clickResult)
+                            {
+                                case MyDraggableResult.LeftPressed:
+                                case MyDraggableResult.LeftDraggedThenPressed:
+                                    trad.AdjustBy(-num * num2);
+                                    Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
+                                    break;
+                                case MyDraggableResult.RightPressed:
+                                case MyDraggableResult.RightDraggedThenPressed:
+                                    //trad.AdjustBy(num * num2);
+                                    trad.AdjustTo(trad.GetMinimumToTransfer());
+                                    Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
+                                    break;
+                            }
+                            /*if (Widgets.ButtonText(leftArrowRect, ">", true, true, true))
                             {
                                 trad.AdjustBy(-num * num2);
                                 Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
-                            }
+                            }*/
                         }
                         else
                         {
@@ -794,6 +849,7 @@ namespace TradeUI
                         }
                     }
                 }
+
                 if (TradeUIParameters.Singleton.isDrawingColonyItems)// && trad.CanAdjustBy(-num * num2).Accepted)
                 {
                     Rect leftArrowRect = new Rect(miniRect.x + 55f + EDGE_MARGIN + 10, rect.y, 30f, rect.height);
@@ -801,11 +857,28 @@ namespace TradeUI
 
                     if (canTradeLeft)
                     {
-                        if (Widgets.ButtonText(leftArrowRect, "<", true, true, true))
+                        var clickResult = DrawNormalButton(leftArrowRect, "<", true, true, Widgets.NormalOptionColor);
+                        switch (clickResult)
+                        {
+                            case MyDraggableResult.LeftPressed:
+                            case MyDraggableResult.LeftDraggedThenPressed:
+                                trad.AdjustBy(num * num2);
+                                Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
+                                break;
+                            case MyDraggableResult.RightPressed:
+                            case MyDraggableResult.RightDraggedThenPressed:
+                                if (positiveCountDirection == TransferablePositiveCountDirection.Destination)
+                                    trad.AdjustTo(trad.GetMinimumToTransfer());
+                                else
+                                    trad.AdjustTo(trad.GetMaximumToTransfer());
+                                Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
+                                break;
+                        }
+                        /*if (Widgets.ButtonText(leftArrowRect, "<", true, true, true))
                         {
                             trad.AdjustBy(num * num2);
                             Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
-                        }
+                        }*/
                     }
                     else
                     {
@@ -814,11 +887,29 @@ namespace TradeUI
 
                     if (canTradeRight)
                     {
-                        if (Widgets.ButtonText(rightArrowRect, ">", true, true, true))
+                        var clickResult = DrawNormalButton(rightArrowRect, ">", true, true, Widgets.NormalOptionColor);
+                        switch (clickResult)
+                        {
+                            case MyDraggableResult.LeftPressed:
+                            case MyDraggableResult.LeftDraggedThenPressed:
+                                trad.AdjustBy(-num * num2);
+                                Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
+                                break;
+                            case MyDraggableResult.RightPressed:
+                            case MyDraggableResult.RightDraggedThenPressed:
+                                //trad.AdjustBy(num * num2);
+                                if (positiveCountDirection == TransferablePositiveCountDirection.Destination)
+                                    trad.AdjustTo(trad.GetMaximumToTransfer());
+                                else
+                                    trad.AdjustTo(trad.GetMinimumToTransfer());
+                                Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
+                                break;
+                        }
+                        /*if (Widgets.ButtonText(rightArrowRect, ">", true, true, true))
                         {
                             trad.AdjustBy(-num * num2);
                             Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
-                        }
+                        }*/
                     }
                     else
                     {
@@ -866,7 +957,170 @@ namespace TradeUI
             return false;
         }
 
-        static void DrawGreyButton(Rect rect, string label, bool drawBackground, Color textColor)
+        enum MyDraggableResult
+        {
+            Idle = 0,
+            LeftPressed = 1,
+            LeftDragged = 2,
+            LeftDraggedThenPressed = 3,
+            RightPressed = 4,
+            RightDragged = 5,
+            RightDraggedThenPressed = 6,
+        }
+
+        static MyDraggableResult DrawNormalButton(Rect rect, string label, bool drawBackground, bool doMouseoverSound, Color textColor, bool active = true, bool draggable = true)
+        {
+            var retVal = MyDraggableResult.Idle;
+            TextAnchor anchor = Text.Anchor;
+            Color color = GUI.color;
+            if (drawBackground)
+            {
+                Texture2D atlas = Widgets.ButtonBGAtlas;
+                if (Mouse.IsOver(rect))
+                {
+                    atlas = Widgets.ButtonBGAtlasMouseover;
+                    if (Input.GetMouseButton(0))
+                    {
+                        atlas = Widgets.ButtonBGAtlasClick;
+                    }
+                    else if (Input.GetMouseButton(1))
+                    {
+                        atlas = Widgets.ButtonBGAtlasClick;
+                    }
+
+                    /*if (Input.GetMouseButtonUp(0))
+                    {
+                        retVal = MyDraggableResult.LeftPressed;
+                    }
+                    else if (Input.GetMouseButtonUp(1))
+                    {
+                        retVal = MyDraggableResult.RightPressed;
+                    }*/
+                }
+                Widgets.DrawAtlas(rect, atlas);
+            }
+
+            if (doMouseoverSound)
+            {
+                Verse.Sound.MouseoverSounds.DoRegion(rect);
+            }
+            if (!drawBackground)
+            {
+                GUI.color = textColor;
+                if (Mouse.IsOver(rect))
+                {
+                    GUI.color = Widgets.MouseoverOptionColor;
+                }
+            }
+            if (drawBackground)
+            {
+                Text.Anchor = TextAnchor.MiddleCenter;
+            }
+            else
+            {
+                Text.Anchor = TextAnchor.MiddleLeft;
+            }
+            bool wordWrap = Text.WordWrap;
+            if (rect.height < Text.LineHeight * 2f)
+            {
+                Text.WordWrap = false;
+            }
+            Widgets.Label(rect, label);
+            Text.Anchor = anchor;
+            GUI.color = color;
+            Text.WordWrap = wordWrap;
+
+            if (active && draggable)
+            {
+                // Check for right mouse click first
+                if (Mouse.IsOver(rect) && Input.GetMouseButtonUp(1))
+                {
+                    retVal = MyDraggableResult.RightPressed;
+                }
+                else
+                {
+                    retVal = ButtonInvisibleDraggable(rect, false);
+                    //if (retVal != MyDraggableResult.Idle)
+                        //Log.Message("returning value " + retVal.ToString());
+                }
+
+                //return ButtonInvisibleDraggable(rect, false);
+            }
+            /*if (!active)
+            {
+                return Widgets.DraggableResult.Idle;
+            }
+            if (!Widgets.ButtonInvisible(rect, false))
+            {
+                return Widgets.DraggableResult.Idle;
+            }*/
+
+            return retVal;
+        }
+
+        static MyDraggableResult ButtonInvisibleDraggable(Rect rect, bool doMouseoverSound = false)
+        {
+            if (doMouseoverSound)
+            {
+                Verse.Sound.MouseoverSounds.DoRegion(rect);
+            }
+            int controlID = GUIUtility.GetControlID(FocusType.Passive, rect);
+            if (Mouse.IsOver(rect))
+            {
+                if (Input.GetMouseButtonDown(0))
+                {
+                    //Log.Message("resetting mouse start pos");
+                    Widgets.buttonInvisibleDraggable_activeControl = controlID;
+                    Widgets.buttonInvisibleDraggable_mouseStart = Input.mousePosition;
+                    Widgets.buttonInvisibleDraggable_dragged = false;
+                }
+                /*else if (Input.GetMouseButtonDown(1))
+                {
+                    Widgets.buttonInvisibleDraggable_activeControl = controlID;
+                    Widgets.buttonInvisibleDraggable_mouseStart = Input.mousePosition;
+                    Widgets.buttonInvisibleDraggable_dragged = false;
+                    TradeUIParameters.Singleton.isRightDown = false;
+                }*/
+            }
+
+            if (Widgets.buttonInvisibleDraggable_activeControl == controlID)
+            {
+                if (Input.GetMouseButtonUp(0))
+                {
+                    // On the frame that the button is released
+                    Widgets.buttonInvisibleDraggable_activeControl = 0;
+                    if (!Mouse.IsOver(rect))
+                    {
+                        return MyDraggableResult.Idle;
+                    }
+                    if (!Widgets.buttonInvisibleDraggable_dragged)
+                    {
+                        // We are over the rect + no drag + released
+                        return MyDraggableResult.LeftPressed;
+                    }
+                    // We are over the rect + dragged + released
+                    return MyDraggableResult.LeftDraggedThenPressed;
+                }
+                else
+                {
+                    if (!Input.GetMouseButton(0))
+                    {
+                        // Button not released + not down
+                        Widgets.buttonInvisibleDraggable_activeControl = 0;
+                        return MyDraggableResult.Idle;
+                    }
+                    if (!Widgets.buttonInvisibleDraggable_dragged && (Widgets.buttonInvisibleDraggable_mouseStart - Input.mousePosition).sqrMagnitude > Widgets.DragStartDistanceSquared)
+                    {
+                        // Button not released + button is down + hasn't started dragging + drag distance is met
+                        Widgets.buttonInvisibleDraggable_dragged = true;
+                        return MyDraggableResult.LeftDragged;
+                    }
+                }
+            }
+            return MyDraggableResult.Idle;
+        }
+
+        public static void DrawGreyButton(Rect rect, string label, bool drawBackground, Color textColor)
         {
             TextAnchor anchor = Text.Anchor;
             Color originalColor = GUI.color;

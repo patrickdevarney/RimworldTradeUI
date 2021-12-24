@@ -20,10 +20,12 @@ namespace TradeUI
         {
             scrollPositionLeft = Vector2.zero;
             scrollPositionRight = Vector2.zero;
+            isRightDown = false;
         }
 
         public bool isDrawingColonyItems;
         public Vector2 scrollPositionLeft;
         public Vector2 scrollPositionRight;
+        public bool isRightDown = false;
     }
 }
