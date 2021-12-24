@@ -762,12 +762,6 @@ namespace TradeUI
                     canTradeLeft = trad.CanAdjustBy(-1 * num2).Accepted;
                 }
 
-                /*bool onlyHasOneItem = false;
-                if (TradeUIParameters.Singleton.isDrawingColonyItems)
-                    onlyHasOneItem = trad.GetMinimumToTransfer() == -1;
-                else
-                    onlyHasOneItem = trad.GetMaximumToTransfer() == 1;*/
-
                 if (!TradeUIParameters.Singleton.isDrawingColonyItems)
                 {
                     Rect rightArrowRect = new Rect(miniRect.x, rect.y, 30f, rect.height);
@@ -798,68 +792,12 @@ namespace TradeUI
                         {
                             DrawGreyButton(leftArrowRect, ">", true, Color.gray);
                         }
-#if false
-                        if (!onlyHasOneItem)
-                        {
-                            string label = "<<";
-                            int? num3 = null;
-                            int num4 = 0;
-                            for (int i = 0; i < TransferableUIUtility.stoppingPoints.Count; i++)
-                            {
-                                TransferableCountToTransferStoppingPoint transferableCountToTransferStoppingPoint = TransferableUIUtility.stoppingPoints[i];
-                                if (positiveCountDirection == TransferablePositiveCountDirection.Source)
-                                {
-                                    if (trad.CountToTransfer < transferableCountToTransferStoppingPoint.threshold && (transferableCountToTransferStoppingPoint.threshold < num4 || num3 == null))
-                                    {
-                                        label = transferableCountToTransferStoppingPoint.leftLabel;
-                                        num3 = new int?(transferableCountToTransferStoppingPoint.threshold);
-                                    }
-                                }
-                                else if (trad.CountToTransfer > transferableCountToTransferStoppingPoint.threshold && (transferableCountToTransferStoppingPoint.threshold > num4 || num3 == null))
-                                {
-                                    label = transferableCountToTransferStoppingPoint.leftLabel;
-                                    num3 = new int?(transferableCountToTransferStoppingPoint.threshold);
-                                }
-                            }
-                            rightArrowRect.x -= rightArrowRect.width;
-                            if (Widgets.ButtonText(rightArrowRect, label, true, true, true))
-                            {
-                                if (num3 != null)
-                                {
-                                    trad.AdjustTo(num3.Value);
-                                }
-                                else if (num == 1)
-                                {
-                                    trad.AdjustTo(trad.GetMaximumToTransfer());
-                                }
-                                else
-                                {
-                                    trad.AdjustTo(trad.GetMinimumToTransfer());
-                                }
-                                Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
-                            }
-                        }
-#endif
                     }
                 }
                 if (TradeUIParameters.Singleton.isDrawingColonyItems)// && trad.CanAdjustBy(-num * num2).Accepted)
                 {
                     Rect leftArrowRect = new Rect(miniRect.x + 55f + EDGE_MARGIN + 10, rect.y, 30f, rect.height);
                     Rect rightArrowRect = new Rect(leftArrowRect.xMax, rect.y, 30f, rect.height);
-                    /*if (onlyHasOneItem)
-                    {
-                        arrowButtonRect.width += arrowButtonRect.width;
-                    }*/
-                    /*if (Widgets.ButtonText(rightArrowRect, "+", true, true, true))
-                    {
-                        trad.AdjustBy(-num * num2);
-                        Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
-                    }
-                    if (Widgets.ButtonText(leftArrowRect, "-", true, true, true))
-                    {
-                        trad.AdjustBy(num * num2);
-                        Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
-                    }*/
 
                     if (canTradeLeft)
                     {
@@ -886,48 +824,6 @@ namespace TradeUI
                     {
                         DrawGreyButton(rightArrowRect, ">", true, Color.gray);
                     }
-#if false
-                    if (false)//(!onlyHasOneItem)
-                    {
-                        string label2 = ">>";
-                        int? num5 = null;
-                        int num6 = 0;
-                        for (int j = 0; j < TransferableUIUtility.stoppingPoints.Count; j++)
-                        {
-                            TransferableCountToTransferStoppingPoint transferableCountToTransferStoppingPoint2 = TransferableUIUtility.stoppingPoints[j];
-                            if (positiveCountDirection == TransferablePositiveCountDirection.Destination)
-                            {
-                                if (trad.CountToTransfer < transferableCountToTransferStoppingPoint2.threshold && (transferableCountToTransferStoppingPoint2.threshold < num6 || num5 == null))
-                                {
-                                    label2 = transferableCountToTransferStoppingPoint2.rightLabel;
-                                    num5 = new int?(transferableCountToTransferStoppingPoint2.threshold);
-                                }
-                            }
-                            else if (trad.CountToTransfer > transferableCountToTransferStoppingPoint2.threshold && (transferableCountToTransferStoppingPoint2.threshold > num6 || num5 == null))
-                            {
-                                label2 = transferableCountToTransferStoppingPoint2.rightLabel;
-                                num5 = new int?(transferableCountToTransferStoppingPoint2.threshold);
-                            }
-                        }
-                        arrowButtonRect.x += arrowButtonRect.width;
-                        if (Widgets.ButtonText(arrowButtonRect, label2, true, true, true))
-                        {
-                            if (num5 != null)
-                            {
-                                trad.AdjustTo(num5.Value);
-                            }
-                            else if (num == 1)
-                            {
-                                trad.AdjustTo(trad.GetMinimumToTransfer());
-                            }
-                            else
-                            {
-                                trad.AdjustTo(trad.GetMaximumToTransfer());
-                            }
-                            Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
-                        }
-                    }
-#endif
                 }
             }
 
@@ -977,21 +873,10 @@ namespace TradeUI
             if (drawBackground)
             {
                 Texture2D atlas = Widgets.ButtonSubtleAtlas;
-                /*if (Mouse.IsOver(rect))
-                {
-                    atlas = Widgets.ButtonBGAtlasMouseover;
-                    if (Input.GetMouseButton(0))
-                    {
-                        atlas = Widgets.ButtonBGAtlasClick;
-                    }
-                }*/
+
                 var buttonRect = rect.ContractedBy(1);
                 Widgets.DrawAtlas(buttonRect, atlas);
             }
-            /*if (doMouseoverSound)
-            {
-                MouseoverSounds.DoRegion(rect);
-            }*/
             GUI.color = textColor;
             if (!drawBackground)
             {
@@ -1018,19 +903,6 @@ namespace TradeUI
             Text.Anchor = anchor;
             GUI.color = originalColor;
             Text.WordWrap = wordWrap;
-            /*if (active && draggable)
-            {
-                return Widgets.ButtonInvisibleDraggable(rect, false);
-            }
-            if (!active)
-            {
-                return Widgets.DraggableResult.Idle;
-            }
-            if (!Widgets.ButtonInvisible(rect, false))
-            {
-                return Widgets.DraggableResult.Idle;
-            }
-            return Widgets.DraggableResult.Pressed;*/
         }
     }
 }
