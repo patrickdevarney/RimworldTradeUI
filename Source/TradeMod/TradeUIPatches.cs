@@ -7,15 +7,18 @@ using RimWorld.Planet;
 using System.Reflection;
 
 /*
- * TODO list for release
+ * TODO list
+ *
+ * Add right-click behavior to max-out the trade
  * 
+ * Add tooltip to +- <> buttons
  * 
- * TODO for future
+ * Change color of "X" buttons to grey to indicate they are not interactable
+ *
+ * 
+ * TODO low priority
+ * Fix gift mode drawing silver arrows REALLY BIG
  * Change colors of buttons at bottom (Accept green, Cancel red, Reset, orange/default)
- * 
- * Fix unintuitive behavior that if I sell/buy all of an item, it is strange to reverse this move
- * * Make transfer numbers always postive
- * * If user types a positive number on our side, interpret it as negative
  */
 
 namespace TradeUI
@@ -107,7 +110,7 @@ namespace TradeUI
             });
             
             // Calculate space for left/right rects
-            const float FOOTER_HEIGHT = 150;
+            const float FOOTER_HEIGHT = 110;
             const float BUTTON_HEIGHT = 55;
             Rect twoColumnRect = new Rect(0f, inRect.yMin + TransferableUIUtility.SortersHeight, inRect.width, inRect.height - FOOTER_HEIGHT - TransferableUIUtility.SortersHeight);
 
@@ -428,6 +431,7 @@ namespace TradeUI
             // Icon, info button, name, animal bond/ridability, owned amount, buy price, amount buying, arrows point left
 
             // TDOO: handle somewhere in the trade what happens when I select (sell 10 steel + buy 5 steel)
+            // I think this would be an improvement. Split into two tradeables. This would probably affect a large amount of code (more multiplayer patches possibly to sync the new tradables lsit)
 
             const float COST_WIDTH = 90f;
             const float TRANSFER_WIDTH = 160f;
@@ -464,7 +468,6 @@ namespace TradeUI
                 Rect rect5 = new Rect(xPosition, 0f, TRANSFER_WIDTH, mainRect.height);
                 // Drawing left/right arrows and transfer amount
                 bool flash = Time.time - Dialog_Trade.lastCurrencyFlashTime < 1f && trad.IsCurrency;
-                // Prevent drawing both left/right arrows
                 if (isOurs)
                 {
                     TradeUIParameters.Singleton.isDrawingColonyItems = true;
@@ -493,10 +496,10 @@ namespace TradeUI
                     Widgets.DrawHighlight(rect7);
                 }
                 Text.Anchor = TextAnchor.MiddleRight;
-                Rect rect8 = rect7;
-                rect8.xMin += 5f;
-                rect8.xMax -= 5f;
-                Widgets.Label(rect8, ownedAmount.ToStringCached());
+                Rect ownedAmountRect = rect7;
+                ownedAmountRect.xMin += 5f;
+                ownedAmountRect.xMax -= 5f;
+                Widgets.Label(ownedAmountRect, ownedAmount.ToStringCached());
                 TooltipHandler.TipRegionByKey(rect7, isOurs ? "ColonyCount" : "TraderCount");
             }
             else
@@ -532,7 +535,7 @@ namespace TradeUI
 
             // [        icon [i] Silver     my amount      < transfer amount        their amount            ]
 
-            Text.Font = GameFont.Medium;
+            Text.Font = GameFont.Small;
             GUI.BeginGroup(rect);
 
             // Draw transfer amount
@@ -543,7 +546,7 @@ namespace TradeUI
 
             // Draw owned amount
             int ourAmount = trad.CountHeldBy(Transactor.Colony);
-            if (ourAmount != 0)
+            //if (ourAmount != 0)
             {
                 Text.Anchor = TextAnchor.MiddleRight;
                 float ourAmountWidth = 100f;
@@ -561,7 +564,7 @@ namespace TradeUI
 
             // Draw their amount
             int theirAmount = trad.CountHeldBy(Transactor.Trader);
-            if (theirAmount != 0 && trad.IsThing)
+            //if (theirAmount != 0 && trad.IsThing)
             {
                 Text.Anchor = TextAnchor.MiddleLeft;
                 float theirAmountWidth = 100f;
@@ -744,79 +747,149 @@ namespace TradeUI
 
                 // Fix VANILLA bug that items with durability cause "<<" and ">>" to appear even when there is only one of them
                 // e.g. I have "Flak Pants (normal) 98%" and they have "Flak Pants (normal)" the game will incorrectly show ">>" even though it stacks our pants in entirely different rows
-                bool onlyHasOneItem = false;
+                bool canTradeRight = false;
+                bool canTradeLeft = false;
+                if (TradeUIParameters.Singleton.isDrawingColonyItems)
+                {
+                    // Can trade right is we can modify trade amount by -1
+                    canTradeRight = trad.CanAdjustBy(-1 * num2).Accepted;
+                    // Can trade left is we can modify trade amount by +1
+                    canTradeLeft = trad.CanAdjustBy(1 * num2).Accepted;
+                }
+                else
+                {
+                    // Can trade right is we can modify trade amount by +1
+                    canTradeRight = trad.CanAdjustBy(1 * num2).Accepted;
+                    // Can trade left is we can modify trade amount by -1
+                    canTradeLeft = trad.CanAdjustBy(-1 * num2).Accepted;
+                }
+
+                /*bool onlyHasOneItem = false;
                 if (TradeUIParameters.Singleton.isDrawingColonyItems)
                     onlyHasOneItem = trad.GetMinimumToTransfer() == -1;
                 else
-                    onlyHasOneItem = trad.GetMaximumToTransfer() == 1;
+                    onlyHasOneItem = trad.GetMaximumToTransfer() == 1;*/
 
-                if (!TradeUIParameters.Singleton.isDrawingColonyItems && trad.CanAdjustBy(num * num2).Accepted)
+                if (!TradeUIParameters.Singleton.isDrawingColonyItems)
                 {
-                    Rect arrowRect = new Rect(miniRect.x + 30f, rect.y, 30f, rect.height);
-                    if (onlyHasOneItem)
+                    Rect rightArrowRect = new Rect(miniRect.x, rect.y, 30f, rect.height);
+                    Rect leftArrowRect = new Rect(rightArrowRect.x + rightArrowRect.width, rect.y, 30f, rect.height);
                     {
-                        arrowRect.x -= arrowRect.width;
-                        arrowRect.width += arrowRect.width;
-                    }
-                    if (Widgets.ButtonText(arrowRect, "<", true, true, true))
-                    {
-                        trad.AdjustBy(num * num2);
-                        Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
-                    }
-                    if (!onlyHasOneItem)
-                    {
-                        string label = "<<";
-                        int? num3 = null;
-                        int num4 = 0;
-                        for (int i = 0; i < TransferableUIUtility.stoppingPoints.Count; i++)
+                        if (canTradeRight)
                         {
-                            TransferableCountToTransferStoppingPoint transferableCountToTransferStoppingPoint = TransferableUIUtility.stoppingPoints[i];
-                            if (positiveCountDirection == TransferablePositiveCountDirection.Source)
+                            if (Widgets.ButtonText(rightArrowRect, "<", true, true, true))
                             {
-                                if (trad.CountToTransfer < transferableCountToTransferStoppingPoint.threshold && (transferableCountToTransferStoppingPoint.threshold < num4 || num3 == null))
+                                trad.AdjustBy(num * num2);
+                                Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
+                            }
+                        }
+                        else
+                        {
+                            DrawGreyButton(rightArrowRect, "<", true, Color.gray);
+                        }
+
+                        if (canTradeLeft)
+                        {
+                            if (Widgets.ButtonText(leftArrowRect, ">", true, true, true))
+                            {
+                                trad.AdjustBy(-num * num2);
+                                Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
+                            }
+                        }
+                        else
+                        {
+                            DrawGreyButton(leftArrowRect, ">", true, Color.gray);
+                        }
+#if false
+                        if (!onlyHasOneItem)
+                        {
+                            string label = "<<";
+                            int? num3 = null;
+                            int num4 = 0;
+                            for (int i = 0; i < TransferableUIUtility.stoppingPoints.Count; i++)
+                            {
+                                TransferableCountToTransferStoppingPoint transferableCountToTransferStoppingPoint = TransferableUIUtility.stoppingPoints[i];
+                                if (positiveCountDirection == TransferablePositiveCountDirection.Source)
+                                {
+                                    if (trad.CountToTransfer < transferableCountToTransferStoppingPoint.threshold && (transferableCountToTransferStoppingPoint.threshold < num4 || num3 == null))
+                                    {
+                                        label = transferableCountToTransferStoppingPoint.leftLabel;
+                                        num3 = new int?(transferableCountToTransferStoppingPoint.threshold);
+                                    }
+                                }
+                                else if (trad.CountToTransfer > transferableCountToTransferStoppingPoint.threshold && (transferableCountToTransferStoppingPoint.threshold > num4 || num3 == null))
                                 {
                                     label = transferableCountToTransferStoppingPoint.leftLabel;
                                     num3 = new int?(transferableCountToTransferStoppingPoint.threshold);
                                 }
                             }
-                            else if (trad.CountToTransfer > transferableCountToTransferStoppingPoint.threshold && (transferableCountToTransferStoppingPoint.threshold > num4 || num3 == null))
+                            rightArrowRect.x -= rightArrowRect.width;
+                            if (Widgets.ButtonText(rightArrowRect, label, true, true, true))
                             {
-                                label = transferableCountToTransferStoppingPoint.leftLabel;
-                                num3 = new int?(transferableCountToTransferStoppingPoint.threshold);
+                                if (num3 != null)
+                                {
+                                    trad.AdjustTo(num3.Value);
+                                }
+                                else if (num == 1)
+                                {
+                                    trad.AdjustTo(trad.GetMaximumToTransfer());
+                                }
+                                else
+                                {
+                                    trad.AdjustTo(trad.GetMinimumToTransfer());
+                                }
+                                Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
                             }
                         }
-                        arrowRect.x -= arrowRect.width;
-                        if (Widgets.ButtonText(arrowRect, label, true, true, true))
-                        {
-                            if (num3 != null)
-                            {
-                                trad.AdjustTo(num3.Value);
-                            }
-                            else if (num == 1)
-                            {
-                                trad.AdjustTo(trad.GetMaximumToTransfer());
-                            }
-                            else
-                            {
-                                trad.AdjustTo(trad.GetMinimumToTransfer());
-                            }
-                            Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
-                        }
+#endif
                     }
                 }
-                if (TradeUIParameters.Singleton.isDrawingColonyItems && trad.CanAdjustBy(-num * num2).Accepted)
+                if (TradeUIParameters.Singleton.isDrawingColonyItems)// && trad.CanAdjustBy(-num * num2).Accepted)
                 {
-                    Rect arrowButtonRect = new Rect(miniRect.x + 55f + EDGE_MARGIN + 10, rect.y, 30f, rect.height);
-                    if (onlyHasOneItem)
+                    Rect leftArrowRect = new Rect(miniRect.x + 55f + EDGE_MARGIN + 10, rect.y, 30f, rect.height);
+                    Rect rightArrowRect = new Rect(leftArrowRect.xMax, rect.y, 30f, rect.height);
+                    /*if (onlyHasOneItem)
                     {
                         arrowButtonRect.width += arrowButtonRect.width;
-                    }
-                    if (Widgets.ButtonText(arrowButtonRect, ">", true, true, true))
+                    }*/
+                    /*if (Widgets.ButtonText(rightArrowRect, "+", true, true, true))
                     {
                         trad.AdjustBy(-num * num2);
                         Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
                     }
-                    if (!onlyHasOneItem)
+                    if (Widgets.ButtonText(leftArrowRect, "-", true, true, true))
+                    {
+                        trad.AdjustBy(num * num2);
+                        Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
+                    }*/
+
+                    if (canTradeLeft)
+                    {
+                        if (Widgets.ButtonText(leftArrowRect, "<", true, true, true))
+                        {
+                            trad.AdjustBy(num * num2);
+                            Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
+                        }
+                    }
+                    else
+                    {
+                        DrawGreyButton(leftArrowRect, "<", true, Color.gray);
+                    }
+
+                    if (canTradeRight)
+                    {
+                        if (Widgets.ButtonText(rightArrowRect, ">", true, true, true))
+                        {
+                            trad.AdjustBy(-num * num2);
+                            Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
+                        }
+                    }
+                    else
+                    {
+                        DrawGreyButton(rightArrowRect, ">", true, Color.gray);
+                    }
+#if false
+                    if (false)//(!onlyHasOneItem)
                     {
                         string label2 = ">>";
                         int? num5 = null;
@@ -856,6 +929,7 @@ namespace TradeUI
                             Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
                         }
                     }
+#endif
                 }
             }
 
@@ -896,6 +970,69 @@ namespace TradeUI
 
             // Skip vanilla behavior
             return false;
+        }
+
+        static void DrawGreyButton(Rect rect, string label, bool drawBackground, Color textColor)
+        {
+            TextAnchor anchor = Text.Anchor;
+            Color originalColor = GUI.color;
+            if (drawBackground)
+            {
+                Texture2D atlas = Widgets.ButtonSubtleAtlas;
+                /*if (Mouse.IsOver(rect))
+                {
+                    atlas = Widgets.ButtonBGAtlasMouseover;
+                    if (Input.GetMouseButton(0))
+                    {
+                        atlas = Widgets.ButtonBGAtlasClick;
+                    }
+                }*/
+                var buttonRect = rect.ContractedBy(1);
+                Widgets.DrawAtlas(buttonRect, atlas);
+            }
+            /*if (doMouseoverSound)
+            {
+                MouseoverSounds.DoRegion(rect);
+            }*/
+            GUI.color = textColor;
+            if (!drawBackground)
+            {
+                GUI.color = textColor;
+                if (Mouse.IsOver(rect))
+                {
+                    GUI.color = Widgets.MouseoverOptionColor;
+                }
+            }
+            if (drawBackground)
+            {
+                Text.Anchor = TextAnchor.MiddleCenter;
+            }
+            else
+            {
+                Text.Anchor = TextAnchor.MiddleLeft;
+            }
+            bool wordWrap = Text.WordWrap;
+            if (rect.height < Text.LineHeight * 2f)
+            {
+                Text.WordWrap = false;
+            }
+            Widgets.Label(rect, label);
+            Text.Anchor = anchor;
+            GUI.color = originalColor;
+            Text.WordWrap = wordWrap;
+            /*if (active && draggable)
+            {
+                return Widgets.ButtonInvisibleDraggable(rect, false);
+            }
+            if (!active)
+            {
+                return Widgets.DraggableResult.Idle;
+            }
+            if (!Widgets.ButtonInvisible(rect, false))
+            {
+                return Widgets.DraggableResult.Idle;
+            }
+            return Widgets.DraggableResult.Pressed;*/
         }
     }
 }
