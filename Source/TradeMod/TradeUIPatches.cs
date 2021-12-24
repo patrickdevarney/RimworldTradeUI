@@ -13,8 +13,6 @@ using System.Reflection;
  * 
  * Add tooltip to +- <> buttons
  * 
- * Change color of "X" buttons to grey to indicate they are not interactable
- *
  * 
  * TODO low priority
  * Fix gift mode drawing silver arrows REALLY BIG
