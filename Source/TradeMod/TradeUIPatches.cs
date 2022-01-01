@@ -91,8 +91,18 @@ namespace TradeUI
             //Log.Message($"[TradeUI] Dialog_Trade.DoWindowContents prefix");
             if (__instance.playerIsCaravan)
             {
-                CaravanUIUtility.DrawCaravanInfo(new CaravanUIUtility.CaravanInfo(__instance.MassUsage, __instance.MassCapacity, __instance.cachedMassCapacityExplanation, __instance.TilesPerDay, __instance.cachedTilesPerDayExplanation, __instance.DaysWorthOfFood, __instance.ForagedFoodPerDay, __instance.cachedForagedFoodPerDayExplanation, __instance.Visibility, __instance.cachedVisibilityExplanation, -1f, -1f, null), null, __instance.Tile, null, -9999f, new Rect(12f, 0f, inRect.width - 24f, 40f), true, null, false);
-                inRect.yMin += 52f;
+                try
+                {
+                    CaravanUIUtility.DrawCaravanInfo(new CaravanUIUtility.CaravanInfo(__instance.MassUsage, __instance.MassCapacity, __instance.cachedMassCapacityExplanation, __instance.TilesPerDay, __instance.cachedTilesPerDayExplanation, __instance.DaysWorthOfFood, __instance.ForagedFoodPerDay, __instance.cachedForagedFoodPerDayExplanation, __instance.Visibility, __instance.cachedVisibilityExplanation, -1f, -1f, null), null, __instance.Tile, null, -9999f, new Rect(12f, 0f, inRect.width - 24f, 40f), true, null, false);
+                }
+                catch(System.Exception e)
+                {
+                    Log.Error($"[TradeUI] Error caught. Will continue do draw the rest of the UI: {e.Message}");
+                }
+                finally
+                {
+                    inRect.yMin += 52f;
+                }
             }
             TradeSession.deal.UpdateCurrencyCount();
             GUI.BeginGroup(inRect);
