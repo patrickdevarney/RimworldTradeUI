@@ -478,6 +478,7 @@ namespace TradeUI
                 // But don't actually consume this space since the price will be "drawn" as empty
                 xPosition += COST_WIDTH;
 
+                // TODO: fix vanilla bug that an item the trader has will show up as "Trader is not willing to buy this". Instead, everything should read "Trader is not willing to trade this" or "Trader is not willing to sell this."
                 RimWorld.TradeUI.DrawWillNotTradeText(rect5, "TraderWillNotTrade".Translate());
             }
             else if (ModsConfig.IdeologyActive && TransferableUIUtility.TradeIsPlayerSellingToSlavery(trad, TradeSession.trader.Faction) && !new HistoryEvent(HistoryEventDefOf.SoldSlave, TradeSession.playerNegotiator.Named(HistoryEventArgsNames.Doer)).DoerWillingToDo())
