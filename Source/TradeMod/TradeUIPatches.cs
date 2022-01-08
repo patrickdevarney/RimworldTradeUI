@@ -87,6 +87,11 @@ namespace TradeUI
         // Then draw the accept buttons and react to user pressing buttons
         static bool Prefix(ref UnityEngine.Rect inRect, ref Dialog_Trade __instance)
         {
+            if (!__instance.IsOpen)
+            {
+                return true;
+            }
+
             var myThis = __instance;
             //Log.Message($"[TradeUI] Dialog_Trade.DoWindowContents prefix");
             if (__instance.playerIsCaravan)
@@ -439,6 +444,7 @@ namespace TradeUI
             scrollPosition = GUI.BeginScrollView(outRect, scrollPosition, viewRect, GUIStyle.none, GUIStyle.none);
         }
 
+        // TODO: change this to override DrawTradableRow in order to have Trade Helper support
         public static void MyDrawTradableRow(Rect mainRect, Tradeable trad, int index, bool isOurs)
         {
             if (Mathf.Abs(index) % 2 == 1)
