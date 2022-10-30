@@ -1,4 +1,5 @@
-﻿using Verse;
+﻿#if false
+using Verse;
 using HarmonyLib;
 using RimWorld;
 using System.Collections.Generic;
@@ -131,6 +132,7 @@ namespace TradeUI
             // DRAW THE LEFT/RIGHT AREAS
             __instance.FillMainRect(twoColumnRect);
 
+            // Draw footer (replaces original entirely)
             Rect footerSilverRect = new Rect(0f, inRect.height - FOOTER_HEIGHT + 3, inRect.width, FOOTER_HEIGHT - BUTTON_HEIGHT - 13);//FOOTER_HEIGHT - 55);
             if (__instance.cachedCurrencyTradeable != null)
             {
@@ -146,7 +148,8 @@ namespace TradeUI
                 inRect.height - BUTTON_HEIGHT,
                 Dialog_Trade.AcceptButtonSize.x,
                 Dialog_Trade.AcceptButtonSize.y);
-
+            // end draw footer (replaces original code entirely)
+            // WHAT IS THIS? start
             bool hasTradablesSet = false;
             foreach(Tradeable t in TradeSession.deal.tradeables)
             {
@@ -156,12 +159,14 @@ namespace TradeUI
                     break;
                 }
             }
+
             if (!hasTradablesSet)
             {
                 Harmony_TransferableUIUtility_DoCountAdjustInterfaceInternal.DrawGreyButton(new Rect(buttonsRect.x - 10f - Dialog_Trade.OtherBottomButtonSize.x, buttonsRect.y, Dialog_Trade.OtherBottomButtonSize.x, Dialog_Trade.OtherBottomButtonSize.y), "ResetButton".Translate(), true, Color.gray);
                 Harmony_TransferableUIUtility_DoCountAdjustInterfaceInternal.DrawGreyButton(buttonsRect, TradeSession.giftMode ? "OfferGifts".Translate() : "AcceptButton".Translate(), true, Color.gray);
             }
             else
+            // WHAT IS THIS? end
             {
                 if (Widgets.ButtonText(buttonsRect, TradeSession.giftMode ? ("OfferGifts".Translate() + " (" + FactionGiftUtility.GetGoodwillChange(TradeSession.deal.AllTradeables, TradeSession.trader.Faction).ToStringWithSign() + ")") : "AcceptButton".Translate(), true, true, true))
                 {
@@ -173,7 +178,6 @@ namespace TradeUI
                             if (flag)
                             {
                                 Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.ExecuteTrade, null);
-                                //SoundDefOf.ExecuteTrade.PlayOneShotOnCamera(null);
                                 Caravan caravan = TradeSession.playerNegotiator.GetCaravan();
                                 if (caravan != null)
                                 {
@@ -192,7 +196,6 @@ namespace TradeUI
                     else
                     {
                         __instance.FlashSilver();
-                        //SoundDefOf.ClickReject.PlayOneShotOnCamera(null);
                         Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.ClickReject, null);
                         Find.WindowStack.Add(Dialog_MessageBox.CreateConfirmation("ConfirmTraderShortFunds".Translate(), action, false, null, WindowLayer.Dialog));
                     }
@@ -201,7 +204,6 @@ namespace TradeUI
 
                 if (Widgets.ButtonText(new Rect(buttonsRect.x - 10f - Dialog_Trade.OtherBottomButtonSize.x, buttonsRect.y, Dialog_Trade.OtherBottomButtonSize.x, Dialog_Trade.OtherBottomButtonSize.y), "ResetButton".Translate(), true, true, true))
                 {
-                    //SoundDefOf.Tick_Low.PlayOneShotOnCamera(null);
                     Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_Low, null);
                     TradeSession.deal.Reset();
                     __instance.CacheTradeables();
@@ -233,7 +235,6 @@ namespace TradeUI
                         TradeSession.deal.Reset();
                         __instance.CacheTradeables();
                         __instance.CountToTransferChanged();
-                        //SoundDefOf.Tick_High.PlayOneShotOnCamera(null);
                         Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
                     }
                     TooltipHandler.TipRegionByKey(rect6, "TradeModeTip");
@@ -246,7 +247,6 @@ namespace TradeUI
                         TradeSession.deal.Reset();
                         __instance.CacheTradeables();
                         __instance.CountToTransferChanged();
-                        //SoundDefOf.Tick_High.PlayOneShotOnCamera(null);
                         Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.Tick_High, null);
                     }
                     TooltipHandler.TipRegionByKey(rect6, "GiftModeTip", faction.Name);
@@ -1177,3 +1177,4 @@ namespace TradeUI
         }
     }
 }
+#endif
