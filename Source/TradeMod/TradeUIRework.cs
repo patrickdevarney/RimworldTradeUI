@@ -8,6 +8,8 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System;
 using System.Linq;
+using Verse.Sound;
+using System.Collections;
 
 /*
  * TODO list
@@ -129,11 +131,11 @@ namespace TradeUI
                         {
                             if (flag)
                             {
-                                Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.ExecuteTrade, null);
+                                SoundDefOf.ExecuteTrade.PlayOneShotOnCamera(null);
                                 Caravan caravan = TradeSession.playerNegotiator.GetCaravan();
                                 if (caravan != null)
                                 {
-                                    caravan.RecacheImmobilizedNow();
+                                    caravan.RecacheInventory();
                                 }
                                 __instance.Close(false);
                                 return;
@@ -148,7 +150,7 @@ namespace TradeUI
                     else
                     {
                         __instance.FlashSilver();
-                        Verse.Sound.SoundStarter.PlayOneShotOnCamera(SoundDefOf.ClickReject, null);
+                        SoundDefOf.ClickReject.PlayOneShotOnCamera(null);
                         Find.WindowStack.Add(Dialog_MessageBox.CreateConfirmation("ConfirmTraderShortFunds".Translate(), action, false, null, WindowLayer.Dialog));
                     }
                     Event.current.Use();
@@ -457,7 +459,7 @@ namespace TradeUI
                 // Start scroll rect down a bit vertically
                 Rect leftScrollRect = new Rect(0, mainRect.y + leftHeaderRect.height, halfWidth, mainRect.height - leftHeaderRect.height);
                 Rect leftInsideScrollRect = new Rect(0, 0, (leftScrollRect.width - 16f), leftHeight);
-                BeginScrollViewForceDraw(leftScrollRect, ref TradeUIParameters.Singleton.scrollPositionLeft, leftInsideScrollRect, true);
+                Widgets.BeginScrollView(leftScrollRect, ref TradeUIParameters.Singleton.scrollPositionLeft, leftInsideScrollRect, true);
                 float num = 6f;
                 float num2 = TradeUIParameters.Singleton.scrollPositionLeft.y - 30f;
                 float num3 = TradeUIParameters.Singleton.scrollPositionLeft.y + leftScrollRect.height;
@@ -487,7 +489,7 @@ namespace TradeUI
                 // Draw right view
                 Rect rightScrollRect = new Rect(halfWidth, mainRect.y + rightHeaderRect.height, halfWidth, mainRect.height - rightHeaderRect.height);
                 Rect rightInnerRect = new Rect(0, 0, (rightScrollRect.width - 16f), rightHeight);
-                BeginScrollViewForceDraw(rightScrollRect, ref TradeUIParameters.Singleton.scrollPositionRight, rightInnerRect, true);
+                Widgets.BeginScrollView(rightScrollRect, ref TradeUIParameters.Singleton.scrollPositionRight, rightInnerRect, true);
                 num = 6f;
                 num2 = TradeUIParameters.Singleton.scrollPositionRight.y - 30f;
                 num3 = TradeUIParameters.Singleton.scrollPositionRight.y + rightScrollRect.height;
@@ -517,7 +519,7 @@ namespace TradeUI
                 return false; // Skip vanilla behavior
             }
 
-            static void BeginScrollViewForceDraw(Rect outRect, ref Vector2 scrollPosition, Rect viewRect, bool showScrollbars = true)
+            /*static void BeginScrollViewForceDraw(Rect outRect, ref Vector2 scrollPosition, Rect viewRect, bool showScrollbars = true)
             {
                 if (Widgets.mouseOverScrollViewStack.Count > 0)
                 {
@@ -533,7 +535,7 @@ namespace TradeUI
                     return;
                 }
                 scrollPosition = GUI.BeginScrollView(outRect, scrollPosition, viewRect, GUIStyle.none, GUIStyle.none);
-            }
+            }*/
 
             // TODO: change this to override DrawTradableRow in order to have Trade Helper support
             public static void MyDrawTradableRow(Rect mainRect, Tradeable trad, int index, bool isOurs)
